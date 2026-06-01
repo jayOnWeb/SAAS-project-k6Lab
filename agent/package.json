@@ -1,6 +1,6 @@
 {
   "name": "k6lab-agent",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Local agent for K6 Lab load testing",
   "type": "module",
   "bin": {

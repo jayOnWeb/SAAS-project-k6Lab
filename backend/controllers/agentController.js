@@ -94,7 +94,7 @@ const registerAgent = async (req, res) => {
       },
       agentToken: rawToken,
       commands: [
-        "npm install -g /Users/jaykacha/Downloads/k6lab/agent",
+        "npm install -g k6lab-agent",
         `k6lab-agent login ${rawToken}`,
         "k6lab-agent start",
       ],

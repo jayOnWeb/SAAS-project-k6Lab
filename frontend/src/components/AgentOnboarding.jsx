@@ -161,8 +161,12 @@ export default function AgentOnboarding({ onConnected }) {
             
             <div className="space-y-4">
               {/* MacOS/Linux tabs info */}
-              <div className="space-y-2 text-xs text-zinc-400 leading-relaxed">
-                <p>Run these commands inside your local project terminal:</p>
+              <div className="space-y-2.5 text-xs text-zinc-400 leading-relaxed">
+                <div className="bg-amber-950/20 border border-amber-900/30 rounded-xl p-3 text-[11px] text-amber-400/90 leading-normal mb-3">
+                  <strong>⚠️ Prerequisite:</strong> You must have native <code>k6</code> installed on your computer first. 
+                  Run <code>brew install k6</code> (macOS) or <code>choco install k6</code> (Windows) before running the agent.
+                </div>
+                <p className="font-semibold text-zinc-300">Run these commands inside your local terminal:</p>
               </div>
 
               {/* Console commands list */}
@@ -170,8 +174,8 @@ export default function AgentOnboarding({ onConnected }) {
                 {[
                   {
                     num: "1",
-                    cmd: "npm install -g /Users/jaykacha/Downloads/k6lab/agent",
-                    desc: "Installs k6lab CLI from your local sandbox folder globally"
+                    cmd: "npm install -g k6lab-agent",
+                    desc: "Installs the official k6lab CLI agent globally from npm registry"
                   },
                   {
                     num: "2",

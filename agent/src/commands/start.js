@@ -1,4 +1,5 @@
 import fs from "fs-extra";
+import path from "path";
 import { checkK6Installed } from "../services/k6Checker.js";
 import {
   sendHeartbeat,
@@ -86,8 +87,11 @@ export async function start() {
           }
         }, 2000);
 
+        let scriptPath = null;
         try {
-          const { scriptPath, summaryPath, logsPath } = await createK6Script(job);
+          const scriptDetails = await createK6Script(job);
+          scriptPath = scriptDetails.scriptPath;
+          const { summaryPath, logsPath } = scriptDetails;
 
           const runResult = await runK6(scriptPath, job, logsPath);
 
@@ -133,6 +137,12 @@ export async function start() {
                 console.log("");
                 console.log("Waiting for jobs...");
                 console.log("");
+                
+                if (scriptPath) {
+                  try {
+                    await fs.remove(path.dirname(scriptPath));
+                  } catch (cleanErr) {}
+                }
                 continue;
               }
             } catch (statusErr) {
@@ -154,6 +164,13 @@ export async function start() {
 
           console.log("Waiting for jobs...");
           console.log("");
+        } finally {
+          // 🧹 Clean up local job folder on success or error
+          if (scriptPath) {
+            try {
+              await fs.remove(path.dirname(scriptPath));
+            } catch (cleanErr) {}
+          }
         }
       } catch (err) {
         console.error("Agent connection error:", err.message);

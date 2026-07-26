@@ -15,35 +15,61 @@ import RunTest from "./pages/RunTest";
 import History from "./pages/History";
 import Analytics from "./pages/Analytics";
 
+import ClickSpark from "./components/ClickSpark";
+import TargetCursor from "./components/TargetCursor";
+import SmoothScroll from "./components/SmoothScroll";
+
 export default function App() {
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <Routes>
-        {/* 5 Core Public Marketing Pages */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/features" element={<FeaturesPage />} />
-        <Route path="/how-it-works" element={<HowItWorksPage />} />
-        <Route path="/platform" element={<PlatformPage />} />
-        <Route path="/docs" element={<DocsPage />} />
+    <ClickSpark
+      sparkColor="#ffffff"
+      sparkSize={10}
+      sparkRadius={15}
+      sparkCount={8}
+      duration={400}
+    >
+      {/* Site-wide animated TargetCursor */}
+      <TargetCursor 
+        spinDuration={2}
+        hideDefaultCursor
+        parallaxOn
+        hoverDuration={0.2}
+        cursorColor="#ffffff"
+        cursorColorOnTarget="#B497CF"
+        targetSelector="button, a, input[type='submit'], [role='button'], .cursor-target"
+      />
 
-        {/* Authentication Pages */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+      <BrowserRouter>
+        <SmoothScroll>
+          <ScrollToTop />
+        <Routes>
+          {/* 5 Core Public Marketing Pages */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/features" element={<FeaturesPage />} />
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
+          <Route path="/platform" element={<PlatformPage />} />
+          <Route path="/docs" element={<DocsPage />} />
 
-        {/* Protected Dashboard Workspace */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<MainLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="run-test" element={<RunTest />} />
-            <Route path="history" element={<History />} />
-            <Route path="analytics" element={<Analytics />} />
+          {/* Authentication Pages (Login, Signup & Register) */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/register" element={<SignupPage />} />
+
+          {/* Protected Dashboard Workspace */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<MainLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="run-test" element={<RunTest />} />
+              <Route path="history" element={<History />} />
+              <Route path="analytics" element={<Analytics />} />
+            </Route>
           </Route>
-        </Route>
 
-        {/* Fallback to Home Page */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+          {/* Fallback to Home Page */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        </SmoothScroll>
+      </BrowserRouter>
+    </ClickSpark>
   );
 }

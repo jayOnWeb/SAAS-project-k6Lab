@@ -1,119 +1,143 @@
 import { useEffect, useState } from 'react';
-import { Activity, ArrowRight, Menu, X, User } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { ArrowRight, Menu, X, Terminal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const NAV_LINKS = [
-  { label: 'Features', href: '/#features' },
-  { label: 'Diagnostics', href: '/#ai-analysis' },
-  { label: 'Dashboard', href: '/#dashboard' },
-  { label: 'Specs', href: '/#about' },
+const NAV_ITEMS = [
+  { label: 'Home', path: '/' },
+  { label: 'Features', path: '/features' },
+  { label: 'How It Works', path: '/how-it-works' },
+  { label: 'Platform', path: '/platform' },
+  { label: 'Docs', path: '/docs' },
 ];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const closeMenu = () => setOpen(false);
+  const handleNavClick = () => {
+    setMobileOpen(false);
+    window.scrollTo(0, 0);
+  };
 
   return (
-    <header className={`nav-shell ${scrolled ? 'is-scrolled' : ''} ${open ? 'is-open' : ''}`}>
-      <div className="nav-inner">
-        <Link className="brand-lockup" to="/" aria-label="k6lab home" onClick={closeMenu}>
-          <span className="brand-mark" aria-hidden="true">
-            <Activity size={17} strokeWidth={2.4} />
-          </span>
-          <span>k6lab</span>
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      scrolled 
+        ? 'bg-black/95 backdrop-blur-xl border-b border-red-500/20 shadow-[0_10px_30px_rgba(0,0,0,0.9)]' 
+        : 'bg-black/60 backdrop-blur-md border-b border-white/5'
+    }`}>
+      <div className="max-w-7xl mx-auto px-6 h-16 sm:h-20 flex items-center justify-between">
+        {/* Brand Logo - Perfectly Scaled & Constrained */}
+        <Link to="/" className="flex items-center gap-2.5 group" onClick={handleNavClick}>
+          <div className="w-8 h-8 rounded-lg bg-black border border-red-500/40 p-1 flex items-center justify-center shadow-[0_0_12px_rgba(239,68,68,0.3)] transition-transform duration-300 group-hover:scale-105 flex-shrink-0">
+            <img 
+              src="/logo.png" 
+              alt="K6 LAB Logo" 
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <div className="flex items-center leading-none">
+            <span className="text-white font-extrabold tracking-tight text-xl font-['Space_Grotesk']">K6</span>
+            <span className="text-red-500 font-extrabold tracking-tight text-xl font-['Space_Grotesk'] ml-0.5">LAB</span>
+          </div>
         </Link>
 
-        <nav className="nav-links" aria-label="Primary navigation">
-          {NAV_LINKS.map((link) => (
-            <a key={link.href} href={link.href}>
-              {link.label}
-            </a>
-          ))}
+        {/* Desktop Nav Links */}
+        <nav className="hidden md:flex items-center gap-8">
+          {NAV_ITEMS.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={handleNavClick}
+                className={`relative py-2 text-sm font-medium transition-colors ${
+                  isActive ? 'text-white font-semibold' : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                {item.label}
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500 rounded-full shadow-[0_0_8px_#ef4444]" />
+                )}
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="nav-actions">
+        {/* Desktop Action Buttons */}
+        <div className="hidden md:flex items-center gap-4">
           {user ? (
-            <Link className="button-primary" to="/dashboard">
+            <Link to="/dashboard" onClick={handleNavClick} className="btn-red text-sm py-2 px-4">
+              <Terminal size={15} />
               Dashboard
-              <ArrowRight size={14} aria-hidden="true" />
+              <ArrowRight size={15} />
             </Link>
           ) : (
-            <Link className="button-primary" to="/signup">
-              Get Started
-              <ArrowRight size={14} aria-hidden="true" />
-            </Link>
+            <>
+              <Link to="/login" onClick={handleNavClick} className="btn-ghost text-sm py-2 px-4">
+                Sign In
+              </Link>
+              <Link to="/signup" onClick={handleNavClick} className="btn-red text-sm py-2 px-4">
+                Start Testing Free
+                <ArrowRight size={14} />
+              </Link>
+            </>
           )}
-
-          <Link
-            className="nav-avatar flex items-center justify-center border border-zinc-800 hover:border-zinc-700 bg-zinc-900/50 text-zinc-400 hover:text-white transition-all w-8 h-8 rounded-full"
-            to={user ? "/dashboard" : "/login"}
-            aria-label="User profile"
-          >
-            <User size={16} strokeWidth={2} />
-          </Link>
         </div>
 
+        {/* Mobile Toggle */}
         <button
-          className="nav-menu-button"
           type="button"
-          aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
-          aria-expanded={open}
-          aria-controls="mobile-nav"
-          onClick={() => setOpen((value) => !value)}
+          className="md:hidden p-2 text-zinc-300 hover:text-white"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Toggle navigation"
         >
-          {open ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
+          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
-      {open && (
-        <nav id="mobile-nav" className="mobile-nav" aria-label="Mobile navigation">
-          {NAV_LINKS.map((link) => (
-            <a key={link.href} href={link.href} onClick={closeMenu}>
-              {link.label}
-            </a>
+      {/* Mobile Menu */}
+      {mobileOpen && (
+        <div className="md:hidden bg-zinc-950/98 border-b border-red-500/30 px-6 py-6 space-y-4 backdrop-blur-2xl">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={handleNavClick}
+              className={`block py-2.5 text-base font-medium border-b border-white/5 ${
+                location.pathname === item.path ? 'text-red-500 font-bold' : 'text-zinc-300'
+              }`}
+            >
+              {item.label}
+            </Link>
           ))}
-          <div className="mobile-nav-actions">
+          <div className="pt-4 space-y-2">
             {user ? (
-              <Link
-                className="button-primary"
-                to="/dashboard"
-                onClick={closeMenu}
-              >
+              <Link to="/dashboard" className="btn-red w-full justify-center" onClick={handleNavClick}>
                 Dashboard
-                <ArrowRight size={14} aria-hidden="true" />
               </Link>
             ) : (
-              <Link
-                className="button-primary"
-                to="/signup"
-                onClick={closeMenu}
-              >
-                Get Started
-                <ArrowRight size={14} aria-hidden="true" />
-              </Link>
+              <>
+                <Link to="/login" className="btn-ghost w-full justify-center" onClick={handleNavClick}>
+                  Sign In
+                </Link>
+                <Link to="/signup" className="btn-red w-full justify-center" onClick={handleNavClick}>
+                  Start Testing Free
+                </Link>
+              </>
             )}
-            <Link
-              className="nav-avatar flex items-center justify-center border border-zinc-800 bg-zinc-900 text-zinc-400 w-8 h-8 rounded-full mt-2"
-              to={user ? "/dashboard" : "/login"}
-              onClick={closeMenu}
-              aria-label="User profile"
-            >
-              <User size={16} strokeWidth={2} />
-            </Link>
           </div>
-        </nav>
+        </div>
       )}
     </header>
   );

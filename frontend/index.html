@@ -1,23 +1,21 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link
-      rel="preload"
-      href="/aether3d_1780055391173.glb"
-      as="fetch"
-      type="model/gltf-binary"
-      crossorigin
-    />
+    <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="k6lab turns k6 stress telemetry into live dashboards, AI diagnostics, and clear performance reports."
+      content="K6 LAB - Local-first performance testing platform with native k6 execution, real-time telemetry, and AI-powered performance insight."
     />
-    <title>k6lab - Performance Telemetry</title>
+    <title>K6 LAB — Local-First Performance Testing</title>
+    
+    <!-- Google Fonts: Space Grotesk, Inter, JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
   </head>
-  <body>
+  <body class="bg-black text-white antialiased selection:bg-red-500/40 selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

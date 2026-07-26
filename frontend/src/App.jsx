@@ -1,5 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import LandingPage from "./pages/LandingPage";
+import ScrollToTop from "./components/ScrollToTop";
+import HomePage from "./pages/HomePage";
+import FeaturesPage from "./pages/FeaturesPage";
+import HowItWorksPage from "./pages/HowItWorksPage";
+import PlatformPage from "./pages/PlatformPage";
+import DocsPage from "./pages/DocsPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -13,9 +18,14 @@ import Analytics from "./pages/Analytics";
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
-        {/* Public Marketing Landing Page */}
-        <Route path="/" element={<LandingPage />} />
+        {/* 5 Core Public Marketing Pages */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/how-it-works" element={<HowItWorksPage />} />
+        <Route path="/platform" element={<PlatformPage />} />
+        <Route path="/docs" element={<DocsPage />} />
 
         {/* Authentication Pages */}
         <Route path="/login" element={<LoginPage />} />
@@ -31,7 +41,7 @@ export default function App() {
           </Route>
         </Route>
 
-        {/* Fallback to Landing Page */}
+        {/* Fallback to Home Page */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

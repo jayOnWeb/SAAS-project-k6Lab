@@ -1,17 +1,20 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { runTest, getTestById, cancelTest, getAgentStatus, getAISuggestions } from "../services/testService";
+import { getProjects, getFoldersByProject } from "../services/projectService";
 import { formatNumber } from "../utils/format";
 import AgentOnboarding from "../components/AgentOnboarding";
 import {
   Activity, Play, CheckCircle2, AlertTriangle, Shield,
-  Settings, Terminal, AlertCircle, RefreshCw, XCircle, Info, ChevronDown, ChevronUp, Clock, Sparkles, Brain
+  Settings, Terminal, AlertCircle, RefreshCw, XCircle, Info, ChevronDown, ChevronUp, Clock, Sparkles, Brain, Key, Folder, Layers, Lock, Code, Cpu
 } from "lucide-react";
 
 export default function RunTest() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const jobId = searchParams.get("jobId");
+  const initialProjectId = searchParams.get("projectId") || "";
+  const initialFolderId = searchParams.get("folderId") || "";
 
   const renderMarkdown = (text) => {
     if (!text) return null;
@@ -53,6 +56,12 @@ export default function RunTest() {
   const [agentLoading, setAgentLoading] = useState(true);
   const [hasAgent, setHasAgent] = useState(false);
 
+  // Projects & Folders state
+  const [projects, setProjects] = useState([]);
+  const [folders, setFolders] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState(initialProjectId);
+  const [selectedFolderId, setSelectedFolderId] = useState(initialFolderId);
+
   // Form State
   const [form, setForm] = useState({
     name: "",
@@ -60,6 +69,7 @@ export default function RunTest() {
     method: "GET",
     vus: 5,
     duration: "10s",
+    bearerToken: "",
     expectedStatus: 200,
     maxResponseTimeMs: 1000,
     sleepSeconds: 1,
@@ -69,6 +79,7 @@ export default function RunTest() {
   });
 
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [activeTab, setActiveTab] = useState("auth"); // 'auth', 'headers', 'body', 'slas', 'pacing'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -83,6 +94,41 @@ export default function RunTest() {
   const [aiError, setAiError] = useState("");
 
   const logsEndRef = useRef(null);
+
+  // Load Projects on mount
+  useEffect(() => {
+    async function loadProjects() {
+      try {
+        const res = await getProjects();
+        if (res.success) {
+          setProjects(res.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to load user projects:", err);
+      }
+    }
+    loadProjects();
+  }, []);
+
+  // Fetch Folders when Project selected
+  useEffect(() => {
+    async function loadFolders() {
+      if (!selectedProjectId) {
+        setFolders([]);
+        setSelectedFolderId("");
+        return;
+      }
+      try {
+        const res = await getFoldersByProject(selectedProjectId);
+        if (res.success) {
+          setFolders(res.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch project folders:", err);
+      }
+    }
+    loadFolders();
+  }, [selectedProjectId]);
 
   // Check agent status
   const checkAgent = async () => {
@@ -142,7 +188,6 @@ export default function RunTest() {
         if (res.success) {
           setJob(res.data);
           
-          // Stop polling if final state reached
           if (["completed", "failed", "cancelled"].includes(res.data.status)) {
             setPollingActive(false);
           }
@@ -166,10 +211,12 @@ export default function RunTest() {
     };
   }, [jobId]);
 
-  // Auto-scroll log console to bottom
+  const logContainerRef = useRef(null);
+
+  // Auto-scroll log console internally without scrolling main page
   useEffect(() => {
-    if (logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
   }, [job?.logs]);
 
@@ -188,7 +235,6 @@ export default function RunTest() {
         trimmedUrl = "http://" + trimmedUrl;
       }
 
-      // Simple URL validation
       try {
         const parsed = new URL(trimmedUrl);
         if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
@@ -200,19 +246,17 @@ export default function RunTest() {
         return;
       }
 
-      // Parse headers
       let headers = {};
       if (form.headersText) {
         try {
           headers = JSON.parse(form.headersText);
         } catch (err) {
-          setError("Invalid JSON format in Headers field");
+          setError("Invalid JSON format in Custom Headers field");
           setLoading(false);
           return;
         }
       }
 
-      // Parse body
       let body = null;
       if (form.method !== "GET" && form.bodyText) {
         try {
@@ -230,6 +274,9 @@ export default function RunTest() {
         method: form.method,
         vus: parseInt(form.vus),
         duration: form.duration,
+        bearerToken: form.bearerToken,
+        projectId: selectedProjectId || null,
+        folderId: selectedFolderId || null,
         headers,
         body,
         expectedStatus: parseInt(form.expectedStatus),
@@ -306,7 +353,6 @@ export default function RunTest() {
     </div>
   );
 
-  // If loading status checks
   if (agentLoading) {
     return (
       <div className="bg-zinc-950 text-white min-h-screen font-sans flex flex-col items-center justify-center gap-4">
@@ -316,7 +362,6 @@ export default function RunTest() {
     );
   }
 
-  // If no connected agent, force setup onboarding
   if (!hasAgent) {
     return (
       <div className="bg-zinc-950 text-white min-h-screen font-sans py-8">
@@ -331,7 +376,6 @@ export default function RunTest() {
       <div className="bg-zinc-950 text-white min-h-screen font-sans">
         <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
           
-          {/* Header Actions */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center">
@@ -356,7 +400,6 @@ export default function RunTest() {
             </div>
           </div>
 
-          {/* Job Overview Status Banner */}
           <div className={`rounded-2xl border p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${getStatusBg(job.status)}`}>
             <div className="flex items-start gap-3 min-w-0">
               <Clock className="w-5 h-5 mt-0.5 shrink-0" />
@@ -376,7 +419,6 @@ export default function RunTest() {
                 </span>
               </div>
 
-              {/* Live interrupt cancel button */}
               {(job.status === "queued" || job.status === "running") && (
                 <button
                   onClick={handleCancel}
@@ -390,167 +432,114 @@ export default function RunTest() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            
-            {/* Live Metrics Columns */}
             <div className="lg:col-span-3 space-y-6">
-              
-              {/* LATENCY SUMMARY */}
               <div className="space-y-3">
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                  Response Times Latency
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                  <MetricCard label="Avg" value={formatNumber(job.avgResponseTime)} unit="ms" accent />
-                  <MetricCard label="P90" value={formatNumber(job.p90ResponseTime)} unit="ms" />
-                  <MetricCard label="P95" value={formatNumber(job.p95ResponseTime)} unit="ms" />
-                  <MetricCard label="Min" value={formatNumber(job.minResponseTime)} unit="ms" />
-                  <MetricCard label="Max" value={formatNumber(job.maxResponseTime)} unit="ms" />
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Response Times Latency</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <MetricCard label="Average" value={formatNumber(job.avgResponseTime || 0)} unit="ms" accent />
+                  <MetricCard label="P90 Latency" value={formatNumber(job.p90ResponseTime || 0)} unit="ms" />
+                  <MetricCard label="P95 Latency" value={formatNumber(job.p95ResponseTime || 0)} unit="ms" />
+                  <MetricCard label="Max Peak" value={formatNumber(job.maxResponseTime || 0)} unit="ms" />
                 </div>
               </div>
 
-              {/* REQUESTS + NETWORK */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-zinc-900 bg-zinc-900/30 p-4">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">
-                    Request Statistics
-                  </p>
-                  <StatRow label="Total Fired" value={job.totalRequests} />
-                  <StatRow label="Successful OK" value={job.successRequests} highlight />
-                  <StatRow label="Failed Error" value={job.failedRequests} />
-                  <StatRow label="Failure Rate" value={`${formatNumber(job.failureRate)}%`} />
-                </div>
-
-                <div className="rounded-2xl border border-zinc-900 bg-zinc-900/30 p-4">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">
-                    Network Metrics
-                  </p>
-                  <StatRow label="Data Received" value={`${(job.dataReceived / 1024).toFixed(2)} KB`} />
-                  <StatRow label="Data Sent" value={`${(job.dataSent / 1024).toFixed(2)} KB`} />
-                  <StatRow label="Simulated VUs" value={job.vus} />
-                  <StatRow label="Duration Spec" value={job.duration} />
-                </div>
-              </div>
-
-              {/* TIMINGS BREAKDOWN */}
-              <div className="rounded-2xl border border-zinc-900 bg-zinc-900/30 p-4">
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">
-                  Connection Timing Breakdown (Avg)
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-1 gap-x-6">
-                  {[
-                    { label: "Waiting (TTFB)", value: job.waitingTime },
-                    { label: "Sending",        value: job.sendingTime },
-                    { label: "Receiving",      value: job.receivingTime },
-                    { label: "Blocked Delay",  value: job.blockedTime },
-                    { label: "Connecting",     value: job.connectingTime },
-                    { label: "TLS Handshake",  value: job.tlsTime },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="flex items-center justify-between py-2.5 border-b border-zinc-900/50 last:border-0 px-1">
-                      <span className="text-xs text-zinc-400">{label}</span>
-                      <span className="text-xs font-mono text-zinc-200 font-semibold">
-                        {formatNumber(value)} ms
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Live Terminal Log Stream Console */}
-            <div className="lg:col-span-2 flex flex-col min-h-[350px] lg:h-[480px]">
-              <div className="bg-zinc-900/50 border border-zinc-900 rounded-2xl flex-1 flex flex-col overflow-hidden">
-                <div className="px-4 py-3 bg-zinc-950 border-b border-zinc-900 flex justify-between items-center shrink-0">
+              <div className="bg-zinc-900/20 border border-zinc-900 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
                   <div className="flex items-center gap-2">
-                    <Terminal className="w-3.5 h-3.5 text-zinc-500" />
-                    <span className="text-xs font-bold font-mono tracking-wide text-zinc-400">agent_stdout.log</span>
+                    <Shield className="w-4 h-4 text-emerald-500" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">Throughput & Health Audit</span>
                   </div>
-                  {pollingActive && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
-                  )}
+                  <span className={`text-[10px] font-bold font-mono px-2.5 py-1 rounded-md border ${job.failureRate === 0 ? "bg-emerald-950/40 border-emerald-900/50 text-emerald-400" : "bg-red-950/40 border-red-900/50 text-red-400"}`}>
+                    SLA: {job.healthStatus}
+                  </span>
                 </div>
 
-                <div className="flex-1 bg-zinc-950 p-4 overflow-y-auto font-mono text-[10px] sm:text-xs text-zinc-400 leading-relaxed whitespace-pre-wrap select-text">
-                  {job.logs ? (
-                    job.logs
-                  ) : (
-                    <span className="text-zinc-600 italic">Waiting for terminal stream...</span>
-                  )}
-                  <div ref={logsEndRef} />
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* AI Suggestions Card */}
-          {["completed", "failed"].includes(job.status) && (
-            <div className="relative rounded-2xl border border-zinc-900 bg-zinc-900/10 overflow-hidden p-5 space-y-4">
-              
-              {/* Premium Glow effect */}
-              <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/5 blur-3xl rounded-full -mr-12 -mt-12 pointer-events-none" />
-              
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-zinc-900/80 pb-3 relative">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-purple-950/20 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
-                    <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
+                  <div>
+                    <StatRow label="Total Requests Dispatched" value={formatNumber(job.totalRequests || 0)} />
+                    <StatRow label="Passed Requests" value={formatNumber(job.successRequests || 0)} highlight />
+                    <StatRow label="Failed Requests" value={formatNumber(job.failedRequests || 0)} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white leading-none">Neural Performance Audit</h3>
-                    <p className="text-[10px] text-zinc-500 mt-1">Free LLM-driven performance review & suggestions</p>
+                    <StatRow label="Failure Error Rate" value={`${(job.failureRate || 0).toFixed(1)}%`} />
+                    <StatRow label="Network Recv Payload" value={`${formatNumber((job.dataReceived || 0) / 1024)} KB`} />
+                    <StatRow label="Network Sent Payload" value={`${formatNumber((job.dataSent || 0) / 1024)} KB`} />
                   </div>
                 </div>
-                
-                {aiSuggestions && !aiLoading && (
-                  <button
-                    onClick={() => fetchAISuggestions(jobId, true)}
-                    className="flex items-center gap-1 bg-purple-950/40 hover:bg-purple-900/40 border border-purple-500/20 hover:border-purple-500/40 text-[10px] font-bold text-purple-400 py-1.5 px-3 rounded-lg transition-all cursor-pointer"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    Regenerate suggestions
-                  </button>
-                )}
               </div>
 
-              {/* Body / Content */}
-              <div className="relative min-h-[60px] flex flex-col justify-center">
+              <div className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden">
+                <div className="bg-zinc-900/40 px-4 py-3 border-b border-zinc-900 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Terminal className="w-4 h-4 text-zinc-400" />
+                    <span className="text-xs font-mono font-bold text-zinc-300">Local Agent Standard Output</span>
+                  </div>
+                  {pollingActive && (
+                    <div className="flex items-center gap-2 text-[10px] text-amber-400 font-mono">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                      Live Stream...
+                    </div>
+                  )}
+                </div>
+                <div ref={logContainerRef} className="p-4 font-mono text-xs text-zinc-300 h-64 overflow-y-auto bg-black/40 space-y-1">
+                  {job.logs ? (
+                    job.logs.split("\n").map((line, i) => (
+                      <div key={i} className="leading-relaxed hover:bg-zinc-900/50 px-1 rounded transition-colors">
+                        <span className="text-zinc-600 select-none mr-3">{i + 1}</span>
+                        <span>{line}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-zinc-600 italic">Waiting for execution output from local agent runner...</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-purple-950/10 border border-purple-900/20 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-purple-400">
+                    <Brain className="w-4 h-4" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider">AI Root Cause Analysis</h3>
+                  </div>
+                  <button
+                    onClick={() => fetchAISuggestions(job._id, true)}
+                    disabled={aiLoading}
+                    className="text-[10px] bg-purple-900/30 hover:bg-purple-900/50 border border-purple-700/30 text-purple-300 font-semibold px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    {aiLoading ? "Analyzing..." : "Re-Analyze"}
+                  </button>
+                </div>
+
                 {aiLoading ? (
-                  <div className="py-8 flex flex-col items-center justify-center gap-3">
-                    <RefreshCw className="w-6 h-6 animate-spin text-purple-500" />
-                    <span className="text-xs text-zinc-500 font-mono">Consulting LLM performance diagnostics...</span>
+                  <div className="py-8 text-center space-y-2">
+                    <RefreshCw className="w-6 h-6 animate-spin text-purple-400 mx-auto" />
+                    <p className="text-xs text-purple-300/70 font-mono">Synthesizing telemetry vectors...</p>
                   </div>
                 ) : aiError ? (
-                  <div className="py-4 flex flex-col items-center justify-center gap-2 text-zinc-500">
-                    <AlertCircle className="w-6 h-6 text-zinc-600" />
-                    <span className="text-xs">{aiError}</span>
-                    <button
-                      onClick={() => fetchAISuggestions(jobId, true)}
-                      className="mt-2 text-xs font-semibold px-3 py-1 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 rounded-lg transition-all"
-                    >
-                      Generate Analysis
-                    </button>
-                  </div>
+                  <p className="text-xs text-red-400 bg-red-950/20 border border-red-900/30 p-3 rounded-xl font-mono">{aiError}</p>
                 ) : aiSuggestions ? (
-                  <div className="space-y-2 pt-1">
+                  <div className="prose prose-invert max-w-none text-xs">
                     {renderMarkdown(aiSuggestions)}
                   </div>
                 ) : (
-                  <div className="py-4 flex flex-col items-center justify-center gap-2 text-zinc-500">
-                    <Brain className="w-6 h-6 text-zinc-600 animate-pulse" />
-                    <span className="text-xs">No analysis has been triggered for this test run.</span>
+                  <div className="text-center py-6 space-y-2">
+                    <p className="text-xs text-zinc-400">Get AI insights regarding bottlenecks, latency spikes, or failure thresholds.</p>
                     <button
-                      onClick={() => fetchAISuggestions(jobId, false)}
-                      className="mt-2 text-[10px] font-bold uppercase tracking-wider px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all cursor-pointer animate-pulse"
+                      onClick={() => fetchAISuggestions(job._id)}
+                      className="text-xs bg-purple-600 hover:bg-purple-500 text-white font-semibold px-4 py-2 rounded-xl transition-all shadow-md cursor-pointer inline-flex items-center gap-1.5"
                     >
-                      Audit Telemetry Run
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Generate Diagnostic Audit
                     </button>
                   </div>
                 )}
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Error Banner */}
           {job.error && (
             <div className="bg-red-950/20 border border-red-500/20 rounded-xl p-4 flex gap-3 text-xs text-red-400">
               <AlertCircle className="w-5 h-5 shrink-0 text-red-500" />
@@ -561,7 +550,6 @@ export default function RunTest() {
             </div>
           )}
 
-          {/* Run Metadata Details */}
           <div className="rounded-xl border border-zinc-900 bg-zinc-900/20 px-4 py-3 flex items-center justify-between text-[10px] text-zinc-500 font-mono">
             <div>WORKSPACE_ID: <span className="text-zinc-400">{job._id}</span></div>
             <span>Triggered: {new Date(job.createdAt).toLocaleString()}</span>
@@ -578,14 +566,24 @@ export default function RunTest() {
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-red-950/40 border border-red-900/30 flex items-center justify-center">
-            <Activity className="w-4 h-4 text-red-500" />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-red-950/40 border border-red-900/30 flex items-center justify-center">
+              <Activity className="w-4 h-4 text-red-500" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-white leading-none">API Load Test Configurator</h1>
+              <p className="text-xs text-zinc-500 mt-1">Configure and fire stress tests across projects, folders, and authenticated endpoints</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-white leading-none">Load Test Configurator</h1>
-            <p className="text-xs text-zinc-500 mt-1">Configure and queue performance runs triggered locally by your agent</p>
-          </div>
+
+          <Link
+            to="/dashboard/projects"
+            className="text-xs font-semibold px-3.5 py-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white rounded-xl transition-all flex items-center gap-1.5"
+          >
+            <Folder className="w-3.5 h-3.5 text-zinc-400" />
+            Workspace Projects
+          </Link>
         </div>
 
         {error && (
@@ -596,53 +594,105 @@ export default function RunTest() {
         )}
 
         <form onSubmit={handleRunTest} className="space-y-6">
-          <div className="bg-zinc-900/20 border border-zinc-900 rounded-2xl p-5 space-y-4">
+          <div className="bg-zinc-900/30 border border-zinc-900 rounded-2xl p-5 space-y-5">
             
-            {/* Test Name */}
+            {/* Project & Folder Assignment Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-3 border-b border-zinc-900/80">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-400 flex items-center gap-1.5">
+                  <Folder className="w-3.5 h-3.5 text-red-500" />
+                  Target Project
+                </label>
+                <select
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-600 transition-all font-mono"
+                >
+                  <option value="">-- Standard Sandbox (No Project) --</option>
+                  {projects.map((proj) => (
+                    <option key={proj._id} value={proj._id}>
+                      📁 {proj.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-400 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-amber-500" />
+                  Folder / Module
+                </label>
+                <select
+                  value={selectedFolderId}
+                  onChange={(e) => setSelectedFolderId(e.target.value)}
+                  disabled={!selectedProjectId}
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-600 transition-all font-mono disabled:opacity-40"
+                >
+                  <option value="">-- Project Root --</option>
+                  {folders.map((fold) => (
+                    <option key={fold._id} value={fold._id}>
+                      📂 {fold.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Test Label */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-400">Test name</label>
+              <label className="text-xs font-semibold text-zinc-400">Test Execution Label</label>
               <input
                 name="name"
-                placeholder="e.g. Users List Load Query"
+                placeholder="e.g. Auth Login SLA Audit / Checkout Load"
                 value={form.name}
                 onChange={handleChange}
                 className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-700 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600/30 transition-all"
               />
             </div>
 
-            {/* Target Endpoint URL */}
+            {/* Endpoint Method + URL */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-400">Target Endpoint URL</label>
-              <input
-                name="url"
-                placeholder="http://localhost:5000/api/users"
-                value={form.url}
-                onChange={handleChange}
-                required
-                className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-700 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600/30 transition-all font-mono"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              
-              {/* HTTP Method selector */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-400">HTTP Method</label>
+              <label className="text-xs font-semibold text-zinc-400">HTTP Method & Target Endpoint URL</label>
+              <div className="flex flex-col sm:flex-row gap-2">
                 <select
                   name="method"
                   value={form.method}
                   onChange={handleChange}
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-red-600 transition-all font-mono"
+                  className="bg-zinc-950 border border-zinc-900 rounded-xl px-3 py-3 text-sm text-amber-400 font-bold focus:outline-none focus:border-red-600 transition-all font-mono"
                 >
                   {["GET", "POST", "PUT", "PATCH", "DELETE"].map(m => (
                     <option key={m} value={m}>{m}</option>
                   ))}
                 </select>
+                <input
+                  name="url"
+                  placeholder="https://api.ecommerce.com/v1/auth/login"
+                  value={form.url}
+                  onChange={handleChange}
+                  required
+                  className="flex-1 bg-zinc-950 border border-zinc-900 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-700 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600/30 transition-all font-mono"
+                />
               </div>
+            </div>
 
-              {/* VUs */}
+            {/* Load Profile VUs & Duration */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-400">Virtual Users (VUs)</label>
+                <label className="text-xs font-semibold text-zinc-400 flex justify-between items-center">
+                  <span>Virtual Users (VUs)</span>
+                  <div className="flex gap-1">
+                    {[5, 10, 25, 50].map((v) => (
+                      <button
+                        type="button"
+                        key={v}
+                        onClick={() => setForm({ ...form, vus: v })}
+                        className={`text-[10px] px-2 py-0.5 rounded font-mono border ${form.vus === v ? "bg-red-600 border-red-500 text-white" : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white"}`}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </label>
                 <input
                   name="vus"
                   type="number"
@@ -651,28 +701,58 @@ export default function RunTest() {
                   value={form.vus}
                   onChange={handleChange}
                   required
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-600 transition-all font-mono"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-600 transition-all font-mono"
                 />
               </div>
 
-              {/* Duration */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-400">Duration spec</label>
+                <label className="text-xs font-semibold text-zinc-400 flex justify-between items-center">
+                  <span>Duration Spec</span>
+                  <div className="flex gap-1">
+                    {["10s", "30s", "1m", "5m"].map((d) => (
+                      <button
+                        type="button"
+                        key={d}
+                        onClick={() => setForm({ ...form, duration: d })}
+                        className={`text-[10px] px-2 py-0.5 rounded font-mono border ${form.duration === d ? "bg-red-600 border-red-500 text-white" : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white"}`}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </label>
                 <input
                   name="duration"
                   placeholder="30s"
                   value={form.duration}
                   onChange={handleChange}
                   required
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-600 transition-all font-mono"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-600 transition-all font-mono"
                 />
               </div>
+            </div>
 
+            {/* 🔑 Bearer Token Quick Field */}
+            <div className="space-y-1.5 bg-zinc-950/60 p-3.5 rounded-xl border border-zinc-900/80">
+              <label className="text-xs font-semibold text-amber-400 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-amber-400" />
+                  Bearer Token Authentication
+                </span>
+                <span className="text-[10px] text-zinc-500 font-mono font-normal">Auto-injects Authorization header</span>
+              </label>
+              <input
+                name="bearerToken"
+                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                value={form.bearerToken}
+                onChange={handleChange}
+                className="w-full bg-zinc-900/40 border border-zinc-800/80 rounded-xl px-3.5 py-2.5 text-xs text-emerald-300 placeholder:text-zinc-700 focus:outline-none focus:border-amber-500 font-mono truncate"
+              />
             </div>
 
           </div>
 
-          {/* 🔹 ADVANCED COLLAPSIBLE DRAWER OPTIONS */}
+          {/* 🔹 ADVANCED COLLAPSIBLE ACCORDION */}
           <div className="bg-zinc-900/20 border border-zinc-900 rounded-2xl overflow-hidden">
             <button
               type="button"
@@ -680,88 +760,158 @@ export default function RunTest() {
               className="w-full px-5 py-4 flex justify-between items-center bg-zinc-900/40 text-xs font-bold uppercase tracking-wider text-zinc-400 hover:text-white transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                <span>Advanced Parameters Metrics</span>
+                <Settings className="w-4 h-4 text-red-500" />
+                <span>Advanced Test Parameters & Accordion</span>
+                {form.bearerToken && <span className="text-[10px] bg-amber-950/60 border border-amber-800/40 text-amber-400 px-2 py-0.5 rounded-md font-mono lowercase">bearer active</span>}
               </div>
-              {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-zinc-500 lowercase font-normal">{showAdvanced ? "click to hide" : "click to expand headers & SLAs"}</span>
+                {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </div>
             </button>
 
             {showAdvanced && (
               <div className="p-5 border-t border-zinc-900 space-y-4 bg-zinc-900/10">
                 
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                  {/* Expected Status */}
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-zinc-500 uppercase">Expected Status</label>
-                    <input
-                      name="expectedStatus"
-                      type="number"
-                      value={form.expectedStatus}
-                      onChange={handleChange}
-                      className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-red-600 font-mono"
-                    />
-                  </div>
-
-                  {/* Max response Time */}
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-zinc-500 uppercase">Max Response Time (ms)</label>
-                    <input
-                      name="maxResponseTimeMs"
-                      type="number"
-                      value={form.maxResponseTimeMs}
-                      onChange={handleChange}
-                      className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-red-600 font-mono"
-                    />
-                  </div>
-
-                  {/* Sleep Seconds */}
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-zinc-500 uppercase">Sleep Delay (s)</label>
-                    <input
-                      name="sleepSeconds"
-                      type="number"
-                      step="0.1"
-                      value={form.sleepSeconds}
-                      onChange={handleChange}
-                      className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-red-600 font-mono"
-                    />
-                  </div>
-
-                  {/* Timeout */}
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-zinc-500 uppercase">Request Timeout</label>
-                    <input
-                      name="timeout"
-                      value={form.timeout}
-                      onChange={handleChange}
-                      className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-red-600 font-mono"
-                    />
-                  </div>
+                {/* Accordion Tabs */}
+                <div className="flex border-b border-zinc-800 gap-2 overflow-x-auto pb-2">
+                  {[
+                    { id: "auth", label: "Authentication", icon: Lock },
+                    { id: "headers", label: "Custom Headers", icon: Code },
+                    { id: "body", label: "Request Body", icon: Terminal, disabled: form.method === "GET" },
+                    { id: "slas", label: "SLAs & Thresholds", icon: Shield },
+                    { id: "pacing", label: "Pacing & Timeouts", icon: Clock },
+                  ].map((tab) => {
+                    const Icon = tab.icon;
+                    return (
+                      <button
+                        type="button"
+                        key={tab.id}
+                        disabled={tab.disabled}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${activeTab === tab.id ? "bg-red-600 text-white" : "text-zinc-400 hover:text-white hover:bg-zinc-900"} ${tab.disabled ? "opacity-30 cursor-not-allowed" : ""}`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        {tab.label}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {/* Headers Map text JSON */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-zinc-500 uppercase">Custom Headers (JSON)</label>
-                  <textarea
-                    name="headersText"
-                    rows="3"
-                    value={form.headersText}
-                    onChange={handleChange}
-                    className="w-full bg-zinc-950 border border-zinc-900 rounded-xl p-3.5 text-xs text-white focus:outline-none focus:border-red-600 font-mono whitespace-pre"
-                  />
-                </div>
+                {/* Tab 1: Auth */}
+                {activeTab === "auth" && (
+                  <div className="space-y-3 pt-2">
+                    <p className="text-xs text-zinc-400">Configure bearer tokens or header security tokens for protected endpoints.</p>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-zinc-400 uppercase">Bearer Token (JWT / OAuth2)</label>
+                      <input
+                        name="bearerToken"
+                        placeholder="Bearer token string"
+                        value={form.bearerToken}
+                        onChange={handleChange}
+                        className="w-full bg-zinc-950 border border-zinc-900 rounded-xl p-3 text-xs text-emerald-400 focus:outline-none focus:border-red-600 font-mono"
+                      />
+                    </div>
+                  </div>
+                )}
 
-                {/* Body text JSON (Disabled for GETs) */}
-                {form.method !== "GET" && (
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-zinc-500 uppercase">Request Payload Body (JSON)</label>
+                {/* Tab 2: Headers */}
+                {activeTab === "headers" && (
+                  <div className="space-y-3 pt-2">
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs text-zinc-400">Enter custom HTTP Request Headers as a valid JSON object.</p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setForm({ ...form, headersText: "{\n  \"Content-Type\": \"application/json\"\n}" })}
+                          className="text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white px-2 py-1 rounded"
+                        >
+                          JSON Preset
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setForm({ ...form, headersText: "{\n  \"Content-Type\": \"application/x-www-form-urlencoded\"\n}" })}
+                          className="text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white px-2 py-1 rounded"
+                        >
+                          Form Preset
+                        </button>
+                      </div>
+                    </div>
+                    <textarea
+                      name="headersText"
+                      rows="4"
+                      value={form.headersText}
+                      onChange={handleChange}
+                      className="w-full bg-zinc-950 border border-zinc-900 rounded-xl p-3.5 text-xs text-white focus:outline-none focus:border-red-600 font-mono whitespace-pre"
+                    />
+                  </div>
+                )}
+
+                {/* Tab 3: Request Body */}
+                {activeTab === "body" && form.method !== "GET" && (
+                  <div className="space-y-3 pt-2">
+                    <p className="text-xs text-zinc-400">JSON payload dispatched with POST / PUT / PATCH requests.</p>
                     <textarea
                       name="bodyText"
-                      rows="4"
+                      rows="5"
                       value={form.bodyText}
                       onChange={handleChange}
                       className="w-full bg-zinc-950 border border-zinc-900 rounded-xl p-3.5 text-xs text-white focus:outline-none focus:border-red-600 font-mono whitespace-pre"
                     />
+                  </div>
+                )}
+
+                {/* Tab 4: SLAs & Thresholds */}
+                {activeTab === "slas" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-zinc-400 uppercase">Expected HTTP Status Code</label>
+                      <input
+                        name="expectedStatus"
+                        type="number"
+                        value={form.expectedStatus}
+                        onChange={handleChange}
+                        className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-red-600 font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-zinc-400 uppercase">Max Response Time SLA (ms)</label>
+                      <input
+                        name="maxResponseTimeMs"
+                        type="number"
+                        value={form.maxResponseTimeMs}
+                        onChange={handleChange}
+                        className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-red-600 font-mono"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 5: Pacing & Timeout */}
+                {activeTab === "pacing" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-zinc-400 uppercase">Sleep Delay per VU (s)</label>
+                      <input
+                        name="sleepSeconds"
+                        type="number"
+                        step="0.1"
+                        value={form.sleepSeconds}
+                        onChange={handleChange}
+                        className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-red-600 font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-zinc-400 uppercase">Request Timeout</label>
+                      <input
+                        name="timeout"
+                        value={form.timeout}
+                        onChange={handleChange}
+                        className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-red-600 font-mono"
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -773,7 +923,7 @@ export default function RunTest() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl py-3 px-4 text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-red-600 hover:bg-red-500 text-white cursor-pointer active:scale-[0.98] shadow-lg shadow-red-900/10 flex items-center justify-center gap-1.5"
+            className="w-full rounded-xl py-3.5 px-4 text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-red-600 hover:bg-red-500 text-white cursor-pointer active:scale-[0.98] shadow-lg shadow-red-900/10 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -782,8 +932,8 @@ export default function RunTest() {
               </>
             ) : (
               <>
-                <Play className="w-3.5 h-3.5 fill-white" />
-                <span>Dispatch Load Test Run</span>
+                <Play className="w-4 h-4 fill-white" />
+                <span>Fire API Load Test Run</span>
               </>
             )}
           </button>

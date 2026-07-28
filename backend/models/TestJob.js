@@ -12,6 +12,16 @@ const testJobSchema = new mongoose.Schema(
       ref: "Agent",
       required: true,
     },
+    projectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      default: null,
+    },
+    folderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Folder",
+      default: null,
+    },
     status: {
       type: String,
       enum: ["queued", "running", "completed", "failed", "cancel_requested", "cancelled"],

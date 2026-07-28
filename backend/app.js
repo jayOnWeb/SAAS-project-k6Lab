@@ -36,11 +36,13 @@ app.use(express.json());
 const testRoutes = require("./routes/testRoutes");
 const authRoutes = require("./routes/authRoutes");
 const agentRoutes = require("./routes/agentRoutes");
+const projectRoutes = require("./routes/projectRoutes");
 
 // Register API Routes
 app.use("/api", testRoutes);
 app.use("/api", agentRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/projects", projectRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server working");

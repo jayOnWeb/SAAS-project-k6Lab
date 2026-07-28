@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import useTests from "../hooks/useTests";
 import { formatNumber } from "../utils/format";
-import { getAgentStatus } from "../services/testService";
+import { getAgentStatus, runTest } from "../services/testService";
+import { getProjects } from "../services/projectService";
 import AgentOnboarding from "../components/AgentOnboarding";
-import { Activity, Play, Calendar, Zap, AlertCircle, CheckCircle2, Shield, Cpu } from "lucide-react";
+import { Activity, Play, Calendar, Zap, AlertCircle, CheckCircle2, Shield, Cpu, Folder, Layers, Plus, ArrowRight, RefreshCw, Server, Search } from "lucide-react";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { tests, loading: testsLoading, fetchTests } = useTests();
+  const [projects, setProjects] = useState([]);
+
   const [stats, setStats] = useState({
     avgLatency: 0,
     successRate: 0,
@@ -21,7 +25,14 @@ export default function Dashboard() {
   const [hasAgent, setHasAgent] = useState(false);
   const [activeAgent, setActiveAgent] = useState(null);
 
-  // Check agent status
+  // Quick Launcher State
+  const [quickUrl, setQuickUrl] = useState("");
+  const [quickMethod, setQuickMethod] = useState("GET");
+  const [quickVus, setQuickVus] = useState(5);
+  const [quickDuration, setQuickDuration] = useState("10s");
+  const [quickLaunching, setQuickLaunching] = useState(false);
+  const [quickError, setQuickError] = useState("");
+
   const checkAgent = async () => {
     try {
       setAgentLoading(true);
@@ -37,6 +48,17 @@ export default function Dashboard() {
     }
   };
 
+  const fetchWorkspaceProjects = async () => {
+    try {
+      const res = await getProjects();
+      if (res.success) {
+        setProjects(res.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch projects:", err);
+    }
+  };
+
   useEffect(() => {
     checkAgent();
   }, []);
@@ -44,6 +66,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (hasAgent) {
       fetchTests();
+      fetchWorkspaceProjects();
     }
   }, [hasAgent]);
 
@@ -62,7 +85,7 @@ export default function Dashboard() {
       });
 
       const avgLatency = totalLatency / tests.length;
-      const successRate = totalRequests > 0 ? (totalSuccess / totalRequests) * 100 : 0;
+      const successRate = totalRequests > 0 ? (totalSuccess / totalRequests) * 100 : 100;
 
       setStats({
         avgLatency,
@@ -73,12 +96,45 @@ export default function Dashboard() {
     } else {
       setStats({
         avgLatency: 0,
-        successRate: 0,
+        successRate: 100,
         totalRequests: 0,
         failedRequests: 0,
       });
     }
   }, [tests]);
+
+  const handleQuickLaunch = async (e) => {
+    e.preventDefault();
+    if (!quickUrl.trim()) return;
+    setQuickError("");
+    setQuickLaunching(true);
+
+    try {
+      let url = quickUrl.trim();
+      if (!/^https?:\/\//i.test(url)) {
+        url = "http://" + url;
+      }
+      const res = await runTest({
+        name: `Quick Load Test (${quickMethod})`,
+        url,
+        method: quickMethod,
+        vus: Number(quickVus),
+        duration: quickDuration,
+        expectedStatus: 200,
+        maxResponseTimeMs: 1000,
+        sleepSeconds: 1,
+        timeout: "30s",
+      });
+
+      if (res.success) {
+        navigate(`/dashboard/run-test?jobId=${res.job.id}`);
+      }
+    } catch (err) {
+      setQuickError(err.response?.data?.message || err.response?.data?.error || "Failed to start quick load test");
+    } finally {
+      setQuickLaunching(false);
+    }
+  };
 
   if (agentLoading) {
     return (
@@ -99,199 +155,286 @@ export default function Dashboard() {
 
   return (
     <div className="bg-zinc-950 text-white min-h-screen font-sans">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         
         {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-zinc-900">
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">
               Welcome back, {user?.name || "Developer"}
             </h1>
-            <p className="text-zinc-500 text-sm mt-0.5">
-              Platform dashboard representing stress telemetry from your load tests
+            <p className="text-zinc-400 text-xs mt-0.5">
+              High-Productivity Telemetry Command Center & API Load Testing Workspace
             </p>
           </div>
           
           <div className="flex items-center gap-3">
-            {/* Agent Live Widget */}
-            <div className="hidden sm:flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-xl text-xs font-medium">
+            <div className="hidden sm:flex items-center gap-2 bg-zinc-900/60 border border-zinc-800 px-3.5 py-2 rounded-xl text-xs font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-zinc-400">Agent: </span>
-              <span className="text-white font-semibold">{activeAgent?.name || "Online Device"}</span>
+              <span className="text-white font-semibold font-mono">{activeAgent?.name || "Online Device"}</span>
             </div>
 
             <Link
-              to="/dashboard/run-test"
-              className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-sm font-semibold py-2.5 px-5 rounded-xl transition-all duration-150 active:scale-95 cursor-pointer shadow-lg shadow-red-900/10 border border-red-500/20"
+              to="/dashboard/projects"
+              className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold py-2.5 px-4 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
             >
-              <Play className="w-4 h-4 fill-white" />
-              Fire New Load Test
+              <Folder className="w-4 h-4 text-zinc-400" />
+              Projects
+            </Link>
+
+            <Link
+              to="/dashboard/run-test"
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold py-2.5 px-4 rounded-xl transition-all active:scale-95 cursor-pointer shadow-lg shadow-red-900/10 border border-red-500/20"
+            >
+              <Play className="w-3.5 h-3.5 fill-white" />
+              Configurator
             </Link>
           </div>
         </div>
 
-        {testsLoading && tests.length === 0 ? (
-          <div className="py-20 flex flex-col items-center justify-center gap-4">
-            <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-red-500 animate-spin" />
-            <p className="text-zinc-500 text-sm">Collating server diagnostics...</p>
+        {/* Top Telemetry Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-zinc-900/30 border border-zinc-900 p-5 rounded-2xl flex flex-col gap-1 relative overflow-hidden">
+            <div className="absolute right-4 top-4 text-zinc-800"><Activity className="w-8 h-8" /></div>
+            <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Total Test Runs</span>
+            <span className="text-3xl font-bold font-mono tracking-tight text-white mt-1">{tests.length}</span>
+            <span className="text-zinc-500 text-xs mt-1">Dispatched performance tests</span>
           </div>
-        ) : (
-          <div className="space-y-8">
-            {/* Stats Overview */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              
-              {/* Stat 1 */}
-              <div className="bg-zinc-900/40 border border-zinc-900 p-5 rounded-2xl flex flex-col gap-2 relative overflow-hidden">
-                <div className="absolute right-4 top-4 text-zinc-800"><Activity className="w-8 h-8" /></div>
-                <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Total Tests</span>
-                <span className="text-3xl font-bold font-mono tracking-tight text-white mt-1">
-                  {tests.length}
-                </span>
-                <span className="text-zinc-600 text-xs mt-1">Runs triggered in sandbox</span>
-              </div>
 
-              {/* Stat 2 */}
-              <div className="bg-zinc-900/40 border border-zinc-900 p-5 rounded-2xl flex flex-col gap-2 relative overflow-hidden">
-                <div className="absolute right-4 top-4 text-zinc-800"><Zap className="w-8 h-8" /></div>
-                <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Avg Latency</span>
-                <span className="text-3xl font-bold font-mono tracking-tight text-white mt-1">
-                  {stats.avgLatency > 0 ? `${formatNumber(stats.avgLatency)}` : "—"}
-                  {stats.avgLatency > 0 && <span className="text-sm font-normal text-zinc-500 ml-1">ms</span>}
-                </span>
-                <span className="text-zinc-600 text-xs mt-1">Weighted latency aggregate</span>
-              </div>
+          <div className="bg-zinc-900/30 border border-zinc-900 p-5 rounded-2xl flex flex-col gap-1 relative overflow-hidden">
+            <div className="absolute right-4 top-4 text-zinc-800"><Zap className="w-8 h-8" /></div>
+            <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Average Latency</span>
+            <span className="text-3xl font-bold font-mono tracking-tight text-red-400 mt-1">
+              {formatNumber(stats.avgLatency)} <span className="text-sm text-zinc-500 font-normal">ms</span>
+            </span>
+            <span className="text-zinc-500 text-xs mt-1">Across all endpoint runs</span>
+          </div>
 
-              {/* Stat 3 */}
-              <div className="bg-zinc-900/40 border border-zinc-900 p-5 rounded-2xl flex flex-col gap-2 relative overflow-hidden">
-                <div className="absolute right-4 top-4 text-zinc-800">
-                  {stats.successRate >= 95 ? (
-                    <CheckCircle2 className="w-8 h-8 text-green-950/20" />
-                  ) : (
-                    <AlertCircle className="w-8 h-8 text-amber-950/20" />
-                  )}
-                </div>
-                <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Success Rate</span>
-                <span className={`text-3xl font-bold font-mono tracking-tight mt-1 ${stats.successRate >= 95 ? "text-green-400" : stats.successRate > 0 ? "text-amber-400" : "text-white"}`}>
-                  {stats.successRate > 0 ? `${formatNumber(stats.successRate)}%` : "—"}
-                </span>
-                <span className="text-zinc-600 text-xs mt-1">HTTP ok response ratio</span>
-              </div>
+          <div className="bg-zinc-900/30 border border-zinc-900 p-5 rounded-2xl flex flex-col gap-1 relative overflow-hidden">
+            <div className="absolute right-4 top-4 text-zinc-800"><Shield className="w-8 h-8" /></div>
+            <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">SLA Health Rate</span>
+            <span className="text-3xl font-bold font-mono tracking-tight text-emerald-400 mt-1">
+              {stats.successRate.toFixed(1)}%
+            </span>
+            <span className="text-zinc-500 text-xs mt-1">Passed request assertions</span>
+          </div>
 
-              {/* Stat 4 */}
-              <div className="bg-zinc-900/40 border border-zinc-900 p-5 rounded-2xl flex flex-col gap-2 relative overflow-hidden">
-                <div className="absolute right-4 top-4 text-zinc-800"><Shield className="w-8 h-8" /></div>
-                <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">HTTP Requests</span>
-                <span className="text-3xl font-bold font-mono tracking-tight text-white mt-1">
-                  {stats.totalRequests > 0 ? stats.totalRequests.toLocaleString() : "—"}
-                </span>
-                <span className="text-zinc-600 text-xs mt-1">Total requests fired globally</span>
-              </div>
+          <div className="bg-zinc-900/30 border border-zinc-900 p-5 rounded-2xl flex flex-col gap-1 relative overflow-hidden">
+            <div className="absolute right-4 top-4 text-zinc-800"><Folder className="w-8 h-8" /></div>
+            <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Active Projects</span>
+            <span className="text-3xl font-bold font-mono tracking-tight text-amber-400 mt-1">{projects.length}</span>
+            <span className="text-zinc-500 text-xs mt-1">Structured microservice suites</span>
+          </div>
+        </div>
 
+        {/* 🚀 Quick Load Launcher Widget */}
+        <div className="bg-zinc-900/30 border border-zinc-900 rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-red-500" />
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Quick API Load Launcher</h3>
             </div>
+            <span className="text-xs text-zinc-500 font-mono">Fire rapid stress run without full config</span>
+          </div>
 
-            {/* Quick dashboard section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Left Column: Recent Tests */}
-              <div className="lg:col-span-2 space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-base font-semibold text-white">Recent Load Runs</h3>
-                  <Link to="/dashboard/history" className="text-xs text-red-500 hover:text-red-400 font-semibold hover:underline">
-                    View all history
-                  </Link>
-                </div>
+          {quickError && (
+            <p className="text-xs text-red-400 bg-red-950/30 border border-red-900/30 p-2.5 rounded-xl font-mono">{quickError}</p>
+          )}
 
-                {tests.length === 0 ? (
-                  <div className="bg-zinc-900/20 border border-dashed border-zinc-800 rounded-2xl p-12 flex flex-col items-center justify-center gap-3 text-center">
-                    <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-600 border border-zinc-800">
-                      <Zap className="w-5 h-5" />
-                    </div>
-                    <p className="text-zinc-400 text-sm font-medium">No load telemetry recorded</p>
-                    <p className="text-zinc-600 text-xs max-w-xs">Register your target API, select VUs and duration, and fire a test run to populate metrics</p>
-                    <Link
-                      to="/dashboard/run-test"
-                      className="mt-2 text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-800 px-4 py-2 rounded-xl transition-colors duration-150"
-                    >
-                      Fire First Test
-                    </Link>
-                  </div>
+          <form onSubmit={handleQuickLaunch} className="flex flex-col sm:flex-row gap-3">
+            <select
+              value={quickMethod}
+              onChange={(e) => setQuickMethod(e.target.value)}
+              className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-amber-400 font-bold font-mono focus:outline-none focus:border-red-600"
+            >
+              {["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+
+            <input
+              type="text"
+              placeholder="Enter endpoint URL (e.g. http://localhost:8000/api/v1/auth)"
+              value={quickUrl}
+              onChange={(e) => setQuickUrl(e.target.value)}
+              required
+              className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-red-600 font-mono"
+            />
+
+            <div className="flex items-center gap-2 shrink-0">
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={quickVus}
+                onChange={(e) => setQuickVus(e.target.value)}
+                title="VUs"
+                className="w-16 bg-zinc-950 border border-zinc-800 rounded-xl px-2 py-2.5 text-xs text-center font-mono text-white focus:outline-none focus:border-red-600"
+              />
+              <span className="text-xs text-zinc-500 font-mono">VUs</span>
+
+              <input
+                type="text"
+                placeholder="10s"
+                value={quickDuration}
+                onChange={(e) => setQuickDuration(e.target.value)}
+                title="Duration (e.g. 10s, 30s, 1m)"
+                className="w-16 bg-zinc-950 border border-zinc-800 rounded-xl px-2 py-2.5 text-xs text-center font-mono text-white focus:outline-none focus:border-red-600"
+              />
+              <span className="text-xs text-zinc-500 font-mono">Duration</span>
+
+              <button
+                type="submit"
+                disabled={quickLaunching}
+                className="bg-red-600 hover:bg-red-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {quickLaunching ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <div className="bg-zinc-900/20 border border-zinc-900 rounded-2xl divide-y divide-zinc-900 overflow-hidden">
-                    {tests.slice(0, 5).map((test) => (
-                      <Link
-                        key={test._id}
-                        to={`/dashboard/run-test?jobId=${test._id}`}
-                        className="p-4 flex items-center justify-between hover:bg-zinc-900/40 transition-all duration-150 flex-wrap sm:flex-nowrap gap-3"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold tracking-wider shrink-0 ${
-                            test.method === "GET"
-                              ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-                              : "bg-amber-500/10 border border-amber-500/20 text-amber-400"
-                          }`}>
-                            {test.method}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="text-sm font-mono text-zinc-200 truncate">{test.url}</p>
-                            <span className="text-[10px] text-zinc-500 flex items-center gap-1.5 mt-0.5">
-                              <Calendar className="w-3 h-3 text-zinc-600" />
-                              {new Date(test.createdAt).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-6 shrink-0 ml-auto sm:ml-0">
-                          <div className="text-right">
-                            <p className="text-xs font-mono font-medium text-white">{formatNumber(test.avgResponseTime)} ms</p>
-                            <p className="text-[10px] text-zinc-500 mt-0.5">avg response</p>
-                          </div>
-                          
-                          <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
-                            test.status === "completed"
-                              ? test.healthStatus.includes("Healthy")
-                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                                : test.healthStatus.includes("Slow")
-                                ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-                                : "bg-red-500/10 text-red-400 border border-red-500/20"
-                              : "bg-zinc-800 text-zinc-400 border border-zinc-700"
-                          }`}>
-                            {test.status === "completed" ? test.healthStatus.split(" ")[0] : test.status.toUpperCase()}
-                          </span>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                  <Play className="w-3.5 h-3.5 fill-white" />
                 )}
-              </div>
+                <span>Fire Now</span>
+              </button>
+            </div>
+          </form>
+        </div>
 
-              {/* Right Column: Platform Diagnostics / AI Insights */}
-              <div className="space-y-4">
-                <h3 className="text-base font-semibold text-white">Neural Telemetry</h3>
-                <div className="bg-gradient-to-br from-zinc-900/60 to-zinc-950 border border-zinc-900 p-5 rounded-2xl space-y-4">
-                  <div className="flex items-center gap-2.5 text-red-500">
-                    <Shield className="w-5 h-5 text-red-500" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-red-500">Local Sandbox Mode</span>
+        {/* 📁 Projects & Folders Workspace Section */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Folder className="w-4 h-4 text-amber-500" />
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Workspace Projects (e.g. E-Commerce, Auth)</h3>
+            </div>
+
+            <Link
+              to="/dashboard/projects"
+              className="text-xs text-zinc-400 hover:text-white transition-colors flex items-center gap-1"
+            >
+              <span>Manage Projects</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          {projects.length === 0 ? (
+            <div className="bg-zinc-900/10 border border-dashed border-zinc-900 rounded-2xl p-6 text-center space-y-2">
+              <p className="text-xs text-zinc-500">No projects created yet. Create a project like "E-Commerce" to organize your folders and API endpoints.</p>
+              <Link to="/dashboard/projects" className="text-xs bg-red-600 text-white px-3.5 py-1.5 rounded-xl inline-block">
+                + Create Project
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {projects.slice(0, 3).map((proj) => (
+                <div
+                  key={proj._id}
+                  onClick={() => navigate(`/dashboard/projects/${proj._id}`)}
+                  className="bg-zinc-900/30 hover:bg-zinc-900/60 border border-zinc-900 hover:border-zinc-800 rounded-2xl p-4 space-y-3 cursor-pointer transition-all group"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: proj.color || "#ef4444" }} />
+                      <h4 className="text-sm font-bold text-white group-hover:text-red-400 transition-colors truncate">{proj.name}</h4>
+                    </div>
+                    <span className="text-[10px] font-mono text-zinc-500 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-900">
+                      {proj.testCount || 0} tests
+                    </span>
                   </div>
-                  
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    Welcome to your private sandboxed load-testing control room. The K6 Lab Agent is currently connected and waiting for job dispatches on your machine.
-                  </p>
 
-                  <div className="border-t border-zinc-900 pt-4 space-y-3">
-                    <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Quick Sandbox Specs</span>
-                    <div className="grid grid-cols-2 gap-3 text-[11px] font-mono text-zinc-400">
-                      <div>VUs Limit: <span className="text-white font-bold">100</span></div>
-                      <div>Max Duration: <span className="text-white font-bold">10m</span></div>
-                      <div>Engine: <span className="text-red-500 font-bold">k6 Native</span></div>
-                      <div>DB Storage: <span className="text-white font-bold">Isolated</span></div>
+                  <p className="text-xs text-zinc-400 line-clamp-1">{proj.description || "Microservices project workspace"}</p>
+
+                  <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-2 border-t border-zinc-900">
+                    <span className="flex items-center gap-1 font-mono">
+                      <Layers className="w-3 h-3 text-amber-500" />
+                      {proj.folderCount || 0} folders
+                    </span>
+                    <span className="text-red-400 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                      Open <ArrowRight className="w-3 h-3" />
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 📊 Recent Load Test Runs Feed */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-red-500" />
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Recent Load Test Runs</h3>
+            </div>
+
+            <button
+              onClick={() => fetchTests()}
+              className="text-xs text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          {testsLoading && tests.length === 0 ? (
+            <div className="py-12 flex justify-center">
+              <div className="w-6 h-6 border-2 border-zinc-800 border-t-red-500 rounded-full animate-spin" />
+            </div>
+          ) : tests.length === 0 ? (
+            <div className="bg-zinc-900/10 border border-zinc-900 rounded-2xl p-8 text-center space-y-3">
+              <p className="text-xs text-zinc-500">No load tests executed yet.</p>
+              <Link to="/dashboard/run-test" className="text-xs bg-red-600 text-white px-4 py-2 rounded-xl inline-block">
+                Fire First Load Test
+              </Link>
+            </div>
+          ) : (
+            <div className="bg-zinc-900/20 border border-zinc-900 rounded-2xl overflow-hidden divide-y divide-zinc-900/80">
+              {tests.slice(0, 8).map((test) => (
+                <div
+                  key={test._id}
+                  onClick={() => navigate(`/dashboard/run-test?jobId=${test._id}`)}
+                  className="p-4 hover:bg-zinc-900/50 transition-colors cursor-pointer flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-[10px] font-mono font-bold px-2 py-1 rounded bg-zinc-950 border border-zinc-800 text-amber-400 shrink-0">
+                      {test.method || test.config?.method || "GET"}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-bold text-white truncate">{test.name || "Load Test Run"}</h4>
+                        {test.projectId?.name && (
+                          <span className="text-[10px] bg-zinc-950 border border-zinc-800 text-zinc-400 px-2 py-0.5 rounded font-mono truncate">
+                            📁 {test.projectId.name} {test.folderId?.name ? `/ ${test.folderId.name}` : ""}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] font-mono text-zinc-500 truncate max-w-sm sm:max-w-md">{test.url || test.config?.url}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-6 shrink-0 font-mono text-xs self-end sm:self-auto">
+                    <div className="text-right">
+                      <span className="text-[10px] text-zinc-500 block">VUs & TIME</span>
+                      <span className="text-zinc-300 font-semibold">{test.vus || test.config?.vus || 5} VUs / {test.duration || test.config?.duration || "10s"}</span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] text-zinc-500 block">AVG LATENCY</span>
+                      <span className="text-red-400 font-bold">{formatNumber(test.avgResponseTime || 0)} ms</span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] text-zinc-500 block">STATUS</span>
+                      <span className={`font-bold uppercase text-[11px] ${test.status === "completed" ? "text-emerald-400" : "text-amber-400"}`}>
+                        {test.status}
+                      </span>
                     </div>
                   </div>
                 </div>
-              </div>
-
+              ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
       </div>
     </div>

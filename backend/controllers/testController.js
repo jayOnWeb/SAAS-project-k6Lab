@@ -27,6 +27,9 @@ const runTest = async (req, res) => {
       maxResponseTimeMs,
       sleepSeconds,
       timeout,
+      bearerToken,
+      projectId,
+      folderId,
     } = req.body;
 
     if (!url || !method || !vus || !duration) {
@@ -114,10 +117,18 @@ const runTest = async (req, res) => {
       });
     }
 
+    // If Bearer token passed explicitly, set Authorization header
+    if (bearerToken && typeof bearerToken === "string" && bearerToken.trim()) {
+      const cleanToken = bearerToken.trim().replace(/^Bearer\s+/i, "");
+      headersMap.set("Authorization", `Bearer ${cleanToken}`);
+    }
+
     // 🔹 Create queued job in DB
     const job = await TestJob.create({
       userId: req.user._id,
       agentId: activeAgent._id,
+      projectId: projectId || null,
+      folderId: folderId || null,
       status: "queued",
       name: name ? name.trim() : `Test at ${new Date().toLocaleString()}`,
       config: {
@@ -129,7 +140,7 @@ const runTest = async (req, res) => {
         body: body || null,
         expectedStatus: parseInt(expectedStatus) || 200,
         maxResponseTimeMs: parseInt(maxResponseTimeMs) || 1000,
-        sleepSeconds: parseFloat(sleepSeconds) ?? 1,
+        sleepSeconds: !isNaN(parseFloat(sleepSeconds)) ? parseFloat(sleepSeconds) : 1,
         timeout: timeout || "30s",
       },
     });
@@ -179,23 +190,37 @@ const runTest = async (req, res) => {
 // 🔹 Get tests history/results list
 const getTestResults = async (req, res) => {
   try {
-    const { url } = req.query;
+    const { url, projectId, folderId } = req.query;
     let query = { userId: req.user._id };
 
     if (url) {
       query["config.url"] = { $regex: url, $options: "i" };
     }
+    if (projectId) {
+      query.projectId = projectId;
+    }
+    if (folderId) {
+      query.folderId = folderId;
+    }
 
-    const jobs = await TestJob.find(query).sort({ createdAt: -1 });
+    const jobs = await TestJob.find(query)
+      .populate("projectId", "name color")
+      .populate("folderId", "name")
+      .sort({ createdAt: -1 });
 
     // Map jobs to support old frontend schemas for backward compatibility
     const mapped = jobs.map((job) => ({
       _id: job._id,
+      name: job.name,
       url: job.config.url,
       method: job.config.method,
       vus: job.config.vus,
       duration: job.config.duration,
+      headers: job.config.headers,
+      body: job.config.body,
       status: job.status,
+      projectId: job.projectId,
+      folderId: job.folderId,
       error: job.error,
       logs: job.logs,
       avgResponseTime: job.result?.avgResponseTime || 0,

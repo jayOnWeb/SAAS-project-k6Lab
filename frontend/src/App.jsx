@@ -14,6 +14,8 @@ import Dashboard from "./pages/Dashboard";
 import RunTest from "./pages/RunTest";
 import History from "./pages/History";
 import Analytics from "./pages/Analytics";
+import ProjectsPage from "./pages/ProjectsPage";
+import ProjectDetailsPage from "./pages/ProjectDetailsPage";
 
 import ClickSpark from "./components/ClickSpark";
 import TargetCursor from "./components/TargetCursor";
@@ -30,7 +32,7 @@ export default function App() {
     >
       {/* Site-wide animated TargetCursor */}
       <TargetCursor 
-        spinDuration={2}
+        spinDuration={8}
         hideDefaultCursor
         parallaxOn
         hoverDuration={0.2}
@@ -59,6 +61,8 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<MainLayout />}>
               <Route index element={<Dashboard />} />
+              <Route path="projects" element={<ProjectsPage />} />
+              <Route path="projects/:projectId" element={<ProjectDetailsPage />} />
               <Route path="run-test" element={<RunTest />} />
               <Route path="history" element={<History />} />
               <Route path="analytics" element={<Analytics />} />

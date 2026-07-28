@@ -5,13 +5,23 @@ import 'locomotive-scroll/dist/locomotive-scroll.css';
 
 /**
  * SmoothScroll Component
- * Applies Locomotive Scroll v5 smooth inertia scrolling site-wide across all pages & routes.
+ * Applies Locomotive Scroll v5 smooth inertia scrolling on marketing pages.
+ * Bypasses smooth scroll inside /dashboard to ensure 100% natural, responsive native panel scrolling.
  */
 export default function SmoothScroll({ children }) {
   const location = useLocation();
   const scrollRef = useRef(null);
 
   useEffect(() => {
+    // Disable Lenis / Locomotive smooth scroll inside dashboard workspace to allow native panel scrolling
+    if (location.pathname.startsWith('/dashboard')) {
+      if (scrollRef.current) {
+        scrollRef.current.destroy();
+        scrollRef.current = null;
+      }
+      return;
+    }
+
     let locomotiveScroll;
 
     try {
@@ -42,11 +52,13 @@ export default function SmoothScroll({ children }) {
         scrollRef.current = null;
       }
     };
-  }, []);
+  }, [location.pathname]);
 
-  // Reset scroll and update scroll instance on route change
+  // Reset scroll on route change
   useEffect(() => {
-    window.scrollTo(0, 0);
+    if (!location.pathname.startsWith('/dashboard')) {
+      window.scrollTo(0, 0);
+    }
   }, [location.pathname]);
 
   return <>{children}</>;

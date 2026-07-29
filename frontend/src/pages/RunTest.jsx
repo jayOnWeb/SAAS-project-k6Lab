@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
-import { runTest, getTestById, cancelTest, getAgentStatus, getAISuggestions } from "../services/testService";
+import { runTest, getTestById, cancelTest, getAgentStatus, getAISuggestions, askAIChat } from "../services/testService";
 import { getProjects, getFoldersByProject } from "../services/projectService";
 import { formatNumber } from "../utils/format";
 import AgentOnboarding from "../components/AgentOnboarding";
 import {
   Activity, Play, CheckCircle2, AlertTriangle, Shield,
-  Settings, Terminal, AlertCircle, RefreshCw, XCircle, Info, ChevronDown, ChevronUp, Clock, Sparkles, Brain, Key, Folder, Layers, Lock, Code, Cpu
+  Settings, Terminal, AlertCircle, RefreshCw, XCircle, Info, ChevronDown, ChevronUp, Clock, Sparkles, Brain, Key, Folder, Layers, Lock, Code, Cpu,
+  MessageSquare, Send, Copy, Check, HelpCircle, Zap
 } from "lucide-react";
 
 export default function RunTest() {
@@ -18,40 +19,101 @@ export default function RunTest() {
 
   const renderMarkdown = (text) => {
     if (!text) return null;
-    return text.split("\n").map((line, idx) => {
-      const cleanLine = line.trim();
-      if (!cleanLine) return <div key={idx} className="h-2" />;
-      
-      if (cleanLine.startsWith("###")) {
-        return <h4 key={idx} className="text-xs font-bold text-purple-400 mt-4 mb-1.5">{cleanLine.replace("###", "").trim()}</h4>;
+
+    const codeBlockRegex = /```([\s\S]*?)```/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = codeBlockRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ type: "text", content: text.substring(lastIndex, match.index) });
       }
-      if (cleanLine.startsWith("##")) {
-        return <h3 key={idx} className="text-sm font-bold text-purple-300 mt-5 mb-2">{cleanLine.replace("##", "").trim()}</h3>;
-      }
-      if (cleanLine.startsWith("#")) {
-        return <h2 key={idx} className="text-base font-extrabold text-white mt-6 mb-3">{cleanLine.replace("#", "").trim()}</h2>;
-      }
-      if (cleanLine.startsWith("-") || cleanLine.startsWith("*")) {
-        return (
-          <div key={idx} className="flex items-start gap-2 text-xs text-zinc-300 my-1 pl-1 font-sans">
-            <span className="text-purple-500 text-xs shrink-0 mt-0.5">•</span>
-            <span>{cleanLine.substring(1).trim()}</span>
-          </div>
-        );
-      }
-      if (/^\d+\./.test(cleanLine)) {
-        const number = cleanLine.split(".")[0];
-        const content = cleanLine.split(".").slice(1).join(".").trim();
-        return (
-          <div key={idx} className="flex items-start gap-2 text-xs text-zinc-300 my-1 pl-1 font-sans">
-            <span className="text-purple-400 font-bold shrink-0">{number}.</span>
-            <span>{content}</span>
-          </div>
-        );
-      }
-      return <p key={idx} className="text-xs text-zinc-400 leading-relaxed my-1 font-sans">{cleanLine}</p>;
-    });
+      parts.push({ type: "code", content: match[1].trim() });
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < text.length) {
+      parts.push({ type: "text", content: text.substring(lastIndex) });
+    }
+
+    return (
+      <div className="space-y-3 font-sans">
+        {parts.map((part, pIdx) => {
+          if (part.type === "code") {
+            return (
+              <div key={pIdx} className="relative group my-3 rounded-xl border border-purple-900/40 bg-zinc-950/90 p-3.5 font-mono text-[11px] text-purple-200 overflow-x-auto shadow-inner">
+                <div className="flex items-center justify-between text-[10px] text-zinc-500 mb-2 border-b border-zinc-900 pb-1.5 font-semibold tracking-wider uppercase">
+                  <span>Code / Fix Snippet</span>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(part.content)}
+                    className="text-purple-400 hover:text-purple-300 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Copy className="w-3 h-3" /> Copy Snippet
+                  </button>
+                </div>
+                <pre className="whitespace-pre-wrap leading-relaxed">{part.content}</pre>
+              </div>
+            );
+          }
+
+          return part.content.split("\n").map((line, lIdx) => {
+            const clean = line.trim();
+            if (!clean) return <div key={lIdx} className="h-1" />;
+
+            const formatInline = (str) => {
+              const elements = [];
+              const regex = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+              let last = 0;
+              let m;
+              while ((m = regex.exec(str)) !== null) {
+                if (m.index > last) elements.push(str.substring(last, m.index));
+                const token = m[0];
+                if (token.startsWith("**") && token.endsWith("**")) {
+                  elements.push(<strong key={m.index} className="font-bold text-white">{token.slice(2, -2)}</strong>);
+                } else if (token.startsWith("`") && token.endsWith("`")) {
+                  elements.push(<code key={m.index} className="px-1.5 py-0.5 rounded bg-purple-950/60 border border-purple-800/40 text-purple-300 font-mono text-[11px]">{token.slice(1, -1)}</code>);
+                }
+                last = m.index + token.length;
+              }
+              if (last < str.length) elements.push(str.substring(last));
+              return elements;
+            };
+
+            if (clean.startsWith("###")) {
+              return <h4 key={lIdx} className="text-xs font-bold text-purple-300 tracking-wide uppercase mt-4 mb-1.5 flex items-center gap-1.5">{formatInline(clean.replace(/^###\s*/, ""))}</h4>;
+            }
+            if (clean.startsWith("##")) {
+              return <h3 key={lIdx} className="text-sm font-bold text-purple-200 mt-5 mb-2 pb-1 border-b border-purple-900/30 flex items-center gap-2">{formatInline(clean.replace(/^##\s*/, ""))}</h3>;
+            }
+            if (clean.startsWith("#")) {
+              return <h2 key={lIdx} className="text-base font-extrabold text-white mt-6 mb-3">{formatInline(clean.replace(/^#\s*/, ""))}</h2>;
+            }
+            if (clean.startsWith("-") || clean.startsWith("*")) {
+              return (
+                <div key={lIdx} className="flex items-start gap-2.5 text-xs text-zinc-300 my-1 pl-1">
+                  <span className="text-purple-400 font-bold shrink-0 mt-0.5">•</span>
+                  <span className="leading-relaxed">{formatInline(clean.replace(/^[-*]\s*/, ""))}</span>
+                </div>
+              );
+            }
+            if (/^\d+\./.test(clean)) {
+              const num = clean.match(/^\d+/)[0];
+              const rest = clean.replace(/^\d+\.\s*/, "");
+              return (
+                <div key={lIdx} className="flex items-start gap-2 text-xs text-zinc-300 my-1.5 pl-1">
+                  <span className="text-purple-400 font-bold shrink-0 bg-purple-950/40 border border-purple-800/30 text-[10px] w-4.5 h-4.5 rounded-full flex items-center justify-center mt-0.5">{num}</span>
+                  <span className="leading-relaxed">{formatInline(rest)}</span>
+                </div>
+              );
+            }
+
+            return <p key={lIdx} className="text-xs text-zinc-300 leading-relaxed my-1">{formatInline(clean)}</p>;
+          });
+        })}
+      </div>
+    );
   };
+
 
   const [agentLoading, setAgentLoading] = useState(true);
   const [hasAgent, setHasAgent] = useState(false);
@@ -88,12 +150,60 @@ export default function RunTest() {
   const [pollingActive, setPollingActive] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
 
-  // AI Suggestions State
+  // AI Suggestions & Interactive Chat State
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState("");
   const [aiError, setAiError] = useState("");
+  const [copiedAi, setCopiedAi] = useState(false);
 
-  const logsEndRef = useRef(null);
+  // Mode: 'audit' | 'chat'
+  const [aiMode, setAiMode] = useState("audit");
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatScrollRef = useRef(null);
+
+  const handleCopyAudit = () => {
+    if (!aiSuggestions) return;
+    navigator.clipboard.writeText(aiSuggestions);
+    setCopiedAi(true);
+    setTimeout(() => setCopiedAi(false), 2000);
+  };
+
+  const handleSendChat = async (promptText) => {
+    const q = promptText || chatInput;
+    if (!q || !q.trim() || chatLoading || !jobId) return;
+
+    const userMsg = { role: "user", content: q.trim() };
+    const updatedHistory = [...chatMessages, userMsg];
+    setChatMessages(updatedHistory);
+    setChatInput("");
+    setChatLoading(true);
+
+    try {
+      const res = await askAIChat(jobId, q.trim(), chatMessages);
+      if (res.success && res.answer) {
+        setChatMessages([...updatedHistory, { role: "assistant", content: res.answer }]);
+      } else {
+        setChatMessages([
+          ...updatedHistory,
+          { role: "assistant", content: `❌ Error: ${res.error || "Failed to fetch answer from OpenRouter."}` },
+        ]);
+      }
+    } catch (err) {
+      setChatMessages([
+        ...updatedHistory,
+        { role: "assistant", content: `❌ Error: ${err.response?.data?.error || err.message || "Failed to connect to AI engine."}` },
+      ]);
+    } finally {
+      setChatLoading(false);
+      setTimeout(() => {
+        if (chatScrollRef.current) {
+          chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+        }
+      }, 100);
+    }
+  };
 
   // Load Projects on mount
   useEffect(() => {
@@ -131,9 +241,9 @@ export default function RunTest() {
   }, [selectedProjectId]);
 
   // Check agent status
-  const checkAgent = async () => {
+  const checkAgent = async (isInitial = false) => {
     try {
-      setAgentLoading(true);
+      if (isInitial) setAgentLoading(true);
       const res = await getAgentStatus();
       if (res.success) {
         setHasAgent(res.hasAgent);
@@ -141,7 +251,7 @@ export default function RunTest() {
     } catch (err) {
       console.error(err);
     } finally {
-      setAgentLoading(false);
+      if (isInitial) setAgentLoading(false);
     }
   };
 
@@ -163,13 +273,18 @@ export default function RunTest() {
   };
 
   useEffect(() => {
-    checkAgent();
+    checkAgent(true);
+    const interval = setInterval(() => checkAgent(false), 5000);
+    return () => clearInterval(interval);
   }, [jobId]);
+
+
 
   useEffect(() => {
     setAiSuggestions("");
     setAiError("");
     setAiLoading(false);
+    setChatMessages([]);
   }, [jobId]);
 
   useEffect(() => {
@@ -177,6 +292,7 @@ export default function RunTest() {
       setAiSuggestions(job.aiSuggestions);
     }
   }, [job, aiSuggestions, aiLoading]);
+
 
   // Polling Job Details when jobId is present
   useEffect(() => {
@@ -362,15 +478,7 @@ export default function RunTest() {
     );
   }
 
-  if (!hasAgent) {
-    return (
-      <div className="bg-zinc-950 text-white min-h-screen font-sans py-8">
-        <AgentOnboarding onConnected={checkAgent} />
-      </div>
-    );
-  }
-
-  // 🔹 VIEW STATE: LIVE MONITORING TELEMETRY COCKPIT
+  // 🔹 VIEW STATE 1: LIVE MONITORING TELEMETRY COCKPIT (Always viewable for test details)
   if (jobId && job) {
     return (
       <div className="bg-zinc-950 text-white min-h-screen font-sans">
@@ -497,47 +605,209 @@ export default function RunTest() {
             </div>
 
             <div className="lg:col-span-2 space-y-6">
-              <div className="bg-purple-950/10 border border-purple-900/20 rounded-2xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-purple-400">
-                    <Brain className="w-4 h-4" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider">AI Root Cause Analysis</h3>
+              <div className="bg-gradient-to-b from-purple-950/20 to-zinc-950/80 border border-purple-900/30 rounded-2xl p-5 space-y-4 shadow-xl relative overflow-hidden backdrop-blur-sm">
+                
+                {/* Header & Tabs */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-900/30 pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-purple-900/40 border border-purple-700/40 flex items-center justify-center text-purple-400">
+                      <Brain className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-purple-300">AI Performance Intelligence</h3>
+                      <p className="text-[10px] text-purple-400/70 font-mono">OpenRouter Powered Engine</p>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => fetchAISuggestions(job._id, true)}
-                    disabled={aiLoading}
-                    className="text-[10px] bg-purple-900/30 hover:bg-purple-900/50 border border-purple-700/30 text-purple-300 font-semibold px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1"
-                  >
-                    <Sparkles className="w-3 h-3" />
-                    {aiLoading ? "Analyzing..." : "Re-Analyze"}
-                  </button>
+
+                  <div className="flex items-center gap-1 bg-zinc-900/80 border border-purple-900/30 p-1 rounded-xl">
+                    <button
+                      onClick={() => setAiMode("audit")}
+                      className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                        aiMode === "audit" ? "bg-purple-600 text-white shadow" : "text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Diagnostic Audit
+                    </button>
+                    <button
+                      onClick={() => setAiMode("chat")}
+                      className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                        aiMode === "chat" ? "bg-purple-600 text-white shadow" : "text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      Ask AI Q&A
+                      {chatMessages.length > 0 && (
+                        <span className="bg-purple-400 text-black font-bold text-[9px] px-1 rounded-full">{chatMessages.length}</span>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
-                {aiLoading ? (
-                  <div className="py-8 text-center space-y-2">
-                    <RefreshCw className="w-6 h-6 animate-spin text-purple-400 mx-auto" />
-                    <p className="text-xs text-purple-300/70 font-mono">Synthesizing telemetry vectors...</p>
+                {/* AUDIT TAB CONTENT */}
+                {aiMode === "audit" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono font-semibold text-purple-400 bg-purple-950/50 border border-purple-800/40 px-2 py-0.5 rounded-md">
+                          Deep Telemetry Mode
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {aiSuggestions && (
+                          <button
+                            onClick={handleCopyAudit}
+                            className="text-[10px] bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 font-semibold px-2 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                          >
+                            {copiedAi ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            {copiedAi ? "Copied" : "Copy Report"}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => fetchAISuggestions(job._id, true)}
+                          disabled={aiLoading}
+                          className="text-[10px] bg-purple-900/40 hover:bg-purple-900/70 border border-purple-700/40 text-purple-200 font-semibold px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                        >
+                          <RefreshCw className={`w-3 h-3 ${aiLoading ? "animate-spin" : ""}`} />
+                          {aiLoading ? "Analyzing..." : "Re-Analyze"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {aiLoading ? (
+                      <div className="py-12 text-center space-y-3 bg-purple-950/10 border border-purple-900/20 rounded-xl">
+                        <RefreshCw className="w-7 h-7 animate-spin text-purple-400 mx-auto" />
+                        <div className="space-y-1">
+                          <p className="text-xs font-semibold text-purple-200">Synthesizing Telemetry Audit...</p>
+                          <p className="text-[11px] text-purple-400/60 font-mono">Evaluating P95 latency, throughput limits & failure rates</p>
+                        </div>
+                      </div>
+                    ) : aiError ? (
+                      <div className="text-xs text-red-400 bg-red-950/20 border border-red-900/40 p-4 rounded-xl space-y-1">
+                        <p className="font-bold flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> AI Diagnosis Error</p>
+                        <p className="font-mono text-[11px] opacity-80">{aiError}</p>
+                      </div>
+                    ) : aiSuggestions ? (
+                      <div className="max-h-[520px] overflow-y-auto pr-1 space-y-3 custom-scrollbar text-xs">
+                        {renderMarkdown(aiSuggestions)}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 px-4 space-y-3 bg-purple-950/10 border border-purple-900/20 rounded-xl">
+                        <div className="w-10 h-10 rounded-full bg-purple-900/30 border border-purple-700/40 flex items-center justify-center mx-auto text-purple-400">
+                          <Sparkles className="w-5 h-5" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="text-xs font-bold text-white">Generate Comprehensive Diagnostic Audit</h4>
+                          <p className="text-[11px] text-zinc-400 max-w-xs mx-auto">Get detailed root cause analysis, health scores, and step-by-step code optimizations.</p>
+                        </div>
+                        <button
+                          onClick={() => fetchAISuggestions(job._id)}
+                          className="text-xs bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold px-4 py-2 rounded-xl transition-all shadow-lg cursor-pointer inline-flex items-center gap-2 active:scale-95"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          Generate Performance Report
+                        </button>
+                      </div>
+                    )}
                   </div>
-                ) : aiError ? (
-                  <p className="text-xs text-red-400 bg-red-950/20 border border-red-900/30 p-3 rounded-xl font-mono">{aiError}</p>
-                ) : aiSuggestions ? (
-                  <div className="prose prose-invert max-w-none text-xs">
-                    {renderMarkdown(aiSuggestions)}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 space-y-2">
-                    <p className="text-xs text-zinc-400">Get AI insights regarding bottlenecks, latency spikes, or failure thresholds.</p>
-                    <button
-                      onClick={() => fetchAISuggestions(job._id)}
-                      className="text-xs bg-purple-600 hover:bg-purple-500 text-white font-semibold px-4 py-2 rounded-xl transition-all shadow-md cursor-pointer inline-flex items-center gap-1.5"
+                )}
+
+                {/* INTERACTIVE CHAT TAB CONTENT */}
+                {aiMode === "chat" && (
+                  <div className="space-y-3 flex flex-col h-[480px]">
+                    
+                    {/* Chat Messages Window */}
+                    <div ref={chatScrollRef} className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar bg-black/40 border border-purple-900/20 rounded-xl p-3">
+                      {chatMessages.length === 0 ? (
+                        <div className="text-center py-8 px-4 space-y-3">
+                          <div className="w-9 h-9 rounded-full bg-purple-900/30 border border-purple-700/40 flex items-center justify-center mx-auto text-purple-400">
+                            <MessageSquare className="w-4 h-4" />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs font-bold text-purple-200">Ask Anything About This Test Run</p>
+                            <p className="text-[11px] text-zinc-400 max-w-xs mx-auto">Ask follow-up questions about latency spikes, database indexing, k6 scripts, or server configurations.</p>
+                          </div>
+
+                          {/* Quick Suggestion Chips */}
+                          <div className="pt-2 flex flex-wrap justify-center gap-1.5 max-w-sm mx-auto">
+                            {[
+                              "How to fix latency spikes?",
+                              "Give Node.js/Express fix snippet",
+                              "Write k6 script for 50 VUs",
+                              "Explain the p95 response time",
+                            ].map((chip, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => handleSendChat(chip)}
+                                className="text-[10px] bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/40 text-purple-300 px-2.5 py-1 rounded-lg transition-all cursor-pointer text-left"
+                              >
+                                💡 {chip}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        chatMessages.map((msg, mIdx) => (
+                          <div key={mIdx} className={`flex gap-2 text-xs ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                            {msg.role === "assistant" && (
+                              <div className="w-6 h-6 rounded-md bg-purple-900/60 border border-purple-700/50 flex items-center justify-center text-purple-300 shrink-0 mt-1">
+                                <Brain className="w-3.5 h-3.5" />
+                              </div>
+                            )}
+                            <div className={`max-w-[85%] p-3 rounded-2xl ${
+                              msg.role === "user"
+                                ? "bg-purple-600 text-white rounded-br-none shadow-md font-sans"
+                                : "bg-zinc-900 border border-purple-900/30 text-zinc-200 rounded-bl-none shadow-inner"
+                            }`}>
+                              {msg.role === "user" ? (
+                                <p className="text-xs leading-relaxed">{msg.content}</p>
+                              ) : (
+                                renderMarkdown(msg.content)
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+
+                      {chatLoading && (
+                        <div className="flex gap-2 justify-start items-center text-xs text-purple-300 font-mono py-2">
+                          <div className="w-6 h-6 rounded-md bg-purple-900/60 border border-purple-700/50 flex items-center justify-center text-purple-300">
+                            <Brain className="w-3.5 h-3.5 animate-spin" />
+                          </div>
+                          <span className="animate-pulse text-[11px]">Synthesizing response...</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Chat Input Box */}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSendChat();
+                      }}
+                      className="flex items-center gap-2 pt-1"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Generate Diagnostic Audit
-                    </button>
+                      <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Ask AI follow-up question..."
+                        disabled={chatLoading}
+                        className="flex-1 bg-zinc-950 border border-purple-900/40 rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 transition-colors disabled:opacity-50"
+                      />
+                      <button
+                        type="submit"
+                        disabled={chatLoading || !chatInput.trim()}
+                        className="bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white p-2 rounded-xl transition-all shadow-md cursor-pointer shrink-0 flex items-center justify-center"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                      </button>
+                    </form>
                   </div>
                 )}
               </div>
             </div>
+
           </div>
 
           {job.error && (
@@ -560,8 +830,18 @@ export default function RunTest() {
     );
   }
 
-  // 🔹 VIEW STATE: FORM CONFIGURATION INTERFACE
+  // 🔹 VIEW STATE 2: AGENT ONBOARDING (Required to fire new load tests if no local runner agent is paired)
+  if (!hasAgent) {
+    return (
+      <div className="bg-zinc-950 text-white min-h-screen font-sans py-8">
+        <AgentOnboarding onConnected={checkAgent} />
+      </div>
+    );
+  }
+
+  // 🔹 VIEW STATE 3: FORM CONFIGURATION INTERFACE
   return (
+
     <div className="bg-zinc-950 text-white min-h-screen font-sans">
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         

@@ -19,6 +19,16 @@ export async function sendHeartbeat() {
   return res.data;
 }
 
+export async function notifyLogout() {
+  try {
+    const api = await createClient();
+    await api.post("/api/agent/logout");
+  } catch (err) {
+    // Ignore network error during logout notification
+  }
+}
+
+
 export async function getNextJob() {
   const api = await createClient();
   const res = await api.get("/api/agent/jobs/next");

@@ -27,8 +27,6 @@ export default function SmoothScroll({ children }) {
     try {
       locomotiveScroll = new LocomotiveScroll({
         lenisOptions: {
-          wrapper: window,
-          content: document.documentElement,
           lerp: 0.09,
           duration: 1.2,
           orientation: 'vertical',
@@ -41,6 +39,7 @@ export default function SmoothScroll({ children }) {
           easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         },
       });
+
       scrollRef.current = locomotiveScroll;
     } catch (err) {
       console.warn('LocomotiveScroll initialization warning:', err);

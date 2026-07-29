@@ -47,3 +47,9 @@ export const getAISuggestions = async (id, force = false) => {
   const response = await api.get(`/test/${id}/ai-suggestions${force ? "?force=true" : ""}`);
   return response.data;
 };
+
+// Ask AI Chat follow-up question
+export const askAIChat = async (id, question, chatHistory = []) => {
+  const response = await api.post(`/test/${id}/ai-chat`, { question, chatHistory });
+  return response.data;
+};

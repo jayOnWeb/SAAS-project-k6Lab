@@ -13,51 +13,39 @@ const getMyAgent = async (req, res) => {
   try {
     const agents = await Agent.find({ userId: req.user._id, status: { $ne: "disabled" } });
     
-    // Check if there is an active agent that has sent heartbeat in last 30s
+    // Check if there is an active agent that has sent heartbeat in last 15s
     let activeAgent = null;
     const now = Date.now();
     
     for (const agent of agents) {
-      if (agent.lastSeenAt && now - new Date(agent.lastSeenAt).getTime() < 30000) {
-        // Mark status as online dynamically
-        if (agent.status !== "online") {
-          agent.status = "online";
-          await agent.save();
-        }
+      if (agent.lastSeenAt && now - new Date(agent.lastSeenAt).getTime() < 15000 && agent.status === "online") {
         activeAgent = agent;
         break;
-      } else {
-        // Mark status as offline
-        if (agent.status === "online") {
-          agent.status = "offline";
-          await agent.save();
-        }
+      } else if (agent.status === "online") {
+        agent.status = "offline";
+        await agent.save();
       }
     }
 
-    // If no online agent, but offline exists, return the offline agent as active candidate
-    if (!activeAgent && agents.length > 0) {
-      activeAgent = agents[0];
-    }
-
-    const hasAgent = activeAgent && activeAgent.lastSeenAt && (now - new Date(activeAgent.lastSeenAt).getTime() < 30000);
+    const isOnline = !!activeAgent;
 
     res.json({
       success: true,
-      hasAgent: !!hasAgent,
-      activeAgent: activeAgent ? {
+      hasAgent: isOnline,
+      activeAgent: isOnline ? {
         id: activeAgent._id,
         name: activeAgent.name,
-        status: hasAgent ? "online" : "offline",
+        status: "online",
         lastSeenAt: activeAgent.lastSeenAt,
       } : null,
-      agents: agents.map(a => ({ id: a._id, name: a.name, status: a.status })),
-      setupRequired: !hasAgent,
+      agents: agents.map(a => ({ id: a._id, name: a.name, status: isOnline && a._id.toString() === activeAgent?._id.toString() ? "online" : "offline" })),
+      setupRequired: !isOnline,
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
 
 // 🔹 Frontend API: Register agent and emit one-time raw token
 const registerAgent = async (req, res) => {
@@ -366,12 +354,33 @@ const getJobStatus = async (req, res) => {
   }
 };
 
+// 🔹 CLI API: Agent Logout notification
+const agentLogout = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      const hashed = hashToken(token);
+      const agent = await Agent.findOne({ tokenHash: hashed });
+      if (agent) {
+        agent.status = "offline";
+        agent.lastSeenAt = new Date(0);
+        await agent.save();
+      }
+    }
+    res.json({ success: true, message: "Agent logged out" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 module.exports = {
   getMyAgent,
   registerAgent,
   revokeAgent,
   verifyToken,
   sendHeartbeat,
+  agentLogout,
   getNextJob,
   uploadJobLogs,
   uploadJobResult,
@@ -379,3 +388,4 @@ module.exports = {
   cancelJob,
   getJobStatus,
 };
+

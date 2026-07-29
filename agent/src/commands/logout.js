@@ -1,7 +1,9 @@
 import { clearConfig } from "../services/configStore.js";
+import { notifyLogout } from "../services/api.js";
 
 export async function logout() {
   try {
+    await notifyLogout();
     await clearConfig();
     console.log("");
     console.log("Logged out successfully. Local agent configuration wiped.");
@@ -10,3 +12,4 @@ export async function logout() {
     console.error("Logout action failed:", err.message);
   }
 }
+

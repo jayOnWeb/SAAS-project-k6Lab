@@ -33,9 +33,9 @@ export default function Dashboard() {
   const [quickLaunching, setQuickLaunching] = useState(false);
   const [quickError, setQuickError] = useState("");
 
-  const checkAgent = async () => {
+  const checkAgent = async (isInitial = false) => {
     try {
-      setAgentLoading(true);
+      if (isInitial) setAgentLoading(true);
       const res = await getAgentStatus();
       if (res.success) {
         setHasAgent(res.hasAgent);
@@ -44,7 +44,7 @@ export default function Dashboard() {
     } catch (err) {
       console.error("Failed to fetch agent status:", err);
     } finally {
-      setAgentLoading(false);
+      if (isInitial) setAgentLoading(false);
     }
   };
 
@@ -60,15 +60,13 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    checkAgent();
+    checkAgent(true);
+    fetchTests();
+    fetchWorkspaceProjects();
+    const interval = setInterval(() => checkAgent(false), 5000);
+    return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (hasAgent) {
-      fetchTests();
-      fetchWorkspaceProjects();
-    }
-  }, [hasAgent]);
 
   useEffect(() => {
     if (tests && tests.length > 0) {
@@ -80,53 +78,36 @@ export default function Dashboard() {
       tests.forEach((test) => {
         totalLatency += test.avgResponseTime || 0;
         totalRequests += test.totalRequests || 0;
-        totalSuccess += test.successRequests || 0;
         totalFailed += test.failedRequests || 0;
+        if ((test.failureRate || 0) === 0) totalSuccess += 1;
       });
 
-      const avgLatency = totalLatency / tests.length;
-      const successRate = totalRequests > 0 ? (totalSuccess / totalRequests) * 100 : 100;
-
       setStats({
-        avgLatency,
-        successRate,
+        avgLatency: totalLatency / tests.length,
+        successRate: (totalSuccess / tests.length) * 100,
         totalRequests,
         failedRequests: totalFailed,
-      });
-    } else {
-      setStats({
-        avgLatency: 0,
-        successRate: 100,
-        totalRequests: 0,
-        failedRequests: 0,
       });
     }
   }, [tests]);
 
   const handleQuickLaunch = async (e) => {
     e.preventDefault();
-    if (!quickUrl.trim()) return;
-    setQuickError("");
+    if (!quickUrl) {
+      setQuickError("Target URL is required");
+      return;
+    }
     setQuickLaunching(true);
-
+    setQuickError("");
     try {
-      let url = quickUrl.trim();
-      if (!/^https?:\/\//i.test(url)) {
-        url = "http://" + url;
-      }
       const res = await runTest({
-        name: `Quick Load Test (${quickMethod})`,
-        url,
+        name: `Quick Test - ${quickUrl.replace(/https?:\/\//, "")}`,
+        url: quickUrl,
         method: quickMethod,
         vus: Number(quickVus),
         duration: quickDuration,
-        expectedStatus: 200,
-        maxResponseTimeMs: 1000,
-        sleepSeconds: 1,
-        timeout: "30s",
       });
-
-      if (res.success) {
+      if (res.success && res.job) {
         navigate(`/dashboard/run-test?jobId=${res.job.id}`);
       }
     } catch (err) {
@@ -145,13 +126,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!hasAgent) {
-    return (
-      <div className="bg-zinc-950 text-white min-h-screen font-sans py-8">
-        <AgentOnboarding onConnected={checkAgent} />
-      </div>
-    );
-  }
+  const isAgentOnline = hasAgent && activeAgent?.status === "online";
 
   return (
     <div className="bg-zinc-950 text-white min-h-screen font-sans">
@@ -169,11 +144,22 @@ export default function Dashboard() {
           </div>
           
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 bg-zinc-900/60 border border-zinc-800 px-3.5 py-2 rounded-xl text-xs font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-zinc-400">Agent: </span>
-              <span className="text-white font-semibold font-mono">{activeAgent?.name || "Online Device"}</span>
-            </div>
+            {isAgentOnline ? (
+              <div className="hidden sm:flex items-center gap-2 bg-zinc-900/60 border border-zinc-800 px-3.5 py-2 rounded-xl text-xs font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-zinc-400">Agent: </span>
+                <span className="text-white font-semibold font-mono">{activeAgent.name}</span>
+              </div>
+            ) : (
+              <Link
+                to="/dashboard/run-test"
+                className="hidden sm:flex items-center gap-2 bg-amber-950/30 border border-amber-800/40 px-3.5 py-2 rounded-xl text-xs font-medium hover:border-amber-700 transition-all cursor-pointer"
+              >
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                <span className="text-amber-400">Agent: Disconnected</span>
+                <span className="text-amber-300 font-semibold underline ml-1">Connect</span>
+              </Link>
+            )}
 
             <Link
               to="/dashboard/projects"
@@ -192,6 +178,27 @@ export default function Dashboard() {
             </Link>
           </div>
         </div>
+
+        {/* Local Agent Connection Banner (if agent not registered or offline) */}
+        {!isAgentOnline && (
+          <div className="bg-amber-950/20 border border-amber-900/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-8.5 h-8.5 rounded-xl bg-amber-900/30 border border-amber-700/40 flex items-center justify-center shrink-0 text-amber-400 font-bold">
+                <Cpu className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="font-bold text-amber-200">Local Agent Not Connected</p>
+                <p className="text-zinc-400 text-[11px] mt-0.5">Generate your token and connect your local runner CLI agent on the Run Test page to launch live stress tests.</p>
+              </div>
+            </div>
+            <Link
+              to="/dashboard/run-test"
+              className="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-4 py-2 rounded-xl transition-all cursor-pointer text-xs shrink-0 shadow-md"
+            >
+              Connect Agent First
+            </Link>
+          </div>
+        )}
 
         {/* Top Telemetry Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -215,10 +222,11 @@ export default function Dashboard() {
             <div className="absolute right-4 top-4 text-zinc-800"><Shield className="w-8 h-8" /></div>
             <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">SLA Health Rate</span>
             <span className="text-3xl font-bold font-mono tracking-tight text-emerald-400 mt-1">
-              {stats.successRate.toFixed(1)}%
+              {formatNumber(stats.successRate)}%
             </span>
             <span className="text-zinc-500 text-xs mt-1">Passed request assertions</span>
           </div>
+
 
           <div className="bg-zinc-900/30 border border-zinc-900 p-5 rounded-2xl flex flex-col gap-1 relative overflow-hidden">
             <div className="absolute right-4 top-4 text-zinc-800"><Folder className="w-8 h-8" /></div>

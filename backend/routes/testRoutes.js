@@ -8,6 +8,7 @@ const {
   cancelTest,
   deleteTest,
   getAISuggestions,
+  askAIChat,
 } = require("../controllers/testController");
 
 // Secure all test operations behind JWT Auth
@@ -27,6 +28,10 @@ router.get("/test/:id", protect, getSingleTest); // legacy support
 // 🔹 AI Suggestions routes
 router.get("/tests/:id/ai-suggestions", protect, getAISuggestions);
 router.get("/test/:id/ai-suggestions", protect, getAISuggestions); // legacy support
+
+// 🔹 AI Interactive Chat routes
+router.post("/tests/:id/ai-chat", protect, askAIChat);
+router.post("/test/:id/ai-chat", protect, askAIChat); // legacy support
 
 // 🔹 Cancellation routes
 router.post("/tests/:jobId/cancel", protect, cancelTest);

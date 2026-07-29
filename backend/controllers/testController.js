@@ -1,4 +1,4 @@
-const { generateTelemetryAudit } = require("../services/aiService");
+const { generateTelemetryAudit, askAIChat: askAIServiceChat } = require("../services/aiService");
 const Agent = require("../models/Agent");
 const TestJob = require("../models/TestJob");
 
@@ -405,6 +405,32 @@ const getAISuggestions = async (req, res) => {
   }
 };
 
+// 🔹 Interactive AI Chat regarding specific test job telemetry
+const askAIChat = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { question, chatHistory } = req.body;
+
+    if (!question || typeof question !== "string") {
+      return res.status(400).json({ success: false, error: "Question string is required" });
+    }
+
+    const job = await TestJob.findById(id);
+    if (!job || job.userId.toString() !== req.user._id.toString()) {
+      return res.status(404).json({ success: false, error: "Test job not found" });
+    }
+
+    const answer = await askAIServiceChat(job, question, chatHistory || []);
+    res.json({ success: true, answer });
+  } catch (err) {
+    console.error("AI Chat generation error:", err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message || "Failed to fetch AI answer",
+    });
+  }
+};
+
 module.exports = {
   runTest,
   getTestResults,
@@ -412,4 +438,6 @@ module.exports = {
   cancelTest,
   deleteTest,
   getAISuggestions,
+  askAIChat,
 };
+

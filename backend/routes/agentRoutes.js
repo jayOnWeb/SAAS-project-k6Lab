@@ -7,6 +7,7 @@ const {
   revokeAgent,
   verifyToken,
   sendHeartbeat,
+  agentLogout,
   getNextJob,
   uploadJobLogs,
   uploadJobResult,
@@ -23,6 +24,8 @@ router.delete("/agents/:agentId", protect, revokeAgent);
 // 🔹 CLI Agent API Routes (authenticated by Bearer agentToken inside controller)
 router.post("/agent/verify-token", verifyToken);
 router.post("/agent/heartbeat", sendHeartbeat);
+router.post("/agent/logout", agentLogout);
+
 router.get("/agent/jobs/next", getNextJob);
 router.post("/agent/jobs/:jobId/logs", uploadJobLogs);
 router.post("/agent/jobs/:jobId/result", uploadJobResult);

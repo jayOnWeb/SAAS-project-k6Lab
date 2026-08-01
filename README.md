@@ -1,128 +1,211 @@
-# 📊 K6 Lab
+# ⚡ K6 Lab — Local-First Load Testing Platform v2.4
 
-> **AI-Powered Local Load-Testing & Real-Time Telemetry Cockpit**
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
+[![Vite](https://img.shields.io/badge/vite-v8.0-646CFF.svg)](https://vitejs.dev/)
+[![React](https://img.shields.io/badge/react-v19.0-61DAFB.svg)](https://react.dev/)
+[![k6 Engine](https://img.shields.io/badge/engine-Grafana_k6-7D4698.svg)](https://k6.io/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-K6 Lab is a modern, high-performance load-testing platform built on an **Agent-Only Architecture**. By offloading all stress runs locally to developers' machines via the `k6lab-agent` CLI, the platform eliminates server overhead, handles native `k6` executions seamlessly, and streams live telemetry, timing breakdowns, and stdout logs directly to a beautiful dark-mode React cockpit.
-
-Additionally, K6 Lab features a **Neural Performance Audit**—an on-demand, AI-powered diagnostics panel that audits your test results to provide simple, actionable feedback and direct recommendations to push your endpoints to their actual performance limits!
-
----
-
-## 🧠 Core Features
-
-* **🤖 Neural Performance Audit (AI-Powered)**: 
-  * Powered by state-of-the-art LLMs via **OpenRouter** (`nvidia/nemotron-nano-9b-v2:free`).
-  * Delivers highly context-specific, direct performance audits tailored strictly to your metrics and endpoint.
-  * **Zero textbook clutter**: Cryptographically configured to ignore boring boilerplate tips like *"Profile dependencies"* or *"Add failure scenarios"*.
-  * **Actionable Scale Recommendations**: Congratulates you on clean, healthy runs and guides you directly on how to scale VUs (e.g., to 20 or 50 VUs) and duration to explore actual system boundaries.
-  * **Interactive-Only**: Runs *only* when you click the **"Audit Telemetry Run"** button, preventing unwanted automatic API calls.
-* **💻 Decoupled Local CLI Agent (`k6lab-agent`)**:
-  * Offloads execution to your machine—allowing you to stress-test private/local endpoints (like `http://localhost:5000/api`) that servers cannot reach.
-  * Emits lightweight 5-second heartbeats and atomically polls database queues.
-  * Streams raw stdout logs back to the dashboard in real-time.
-* **📈 Real-Time Telemetry Cockpit**:
-  * Instantly monitors **Average, P90, P95, Min, and Max Latencies**.
-  * Displays **Total Requests, Successful OKs, Failed Errors, and Failure Rates**.
-  * Breaks down network performance with **TTFB (Waiting), Blocked Delay, Sending, Receiving, TLS Handshake, and Connecting times**.
-  * Real-time scrolling stdout log console streaming directly from the active agent thread.
+> **K6 Lab** is a high-performance, local-first API load-testing platform and real-time telemetry cockpit. Designed for developers and platform engineers, K6 Lab combines local Go `k6` engine execution with centralized control, live latency distribution telemetry, and instant AI root-cause failure diagnosis.
 
 ---
 
-## 📂 Project Architecture
+## 📸 Architectural Overview
 
-The project consists of three core workspaces:
+K6 Lab operates on a **Local-First Daemon Architecture**. Instead of routing load test traffic through expensive cloud runners or third-party proxies, test scripts are executed natively on your local machine or internal VPC hardware via the lightweight `k6lab-agent` CLI daemon.
 
-1. **`backend/`**: A Node.js + Express MVC server acting as the central telemetry coordinator.
-2. **`frontend/`**: A Vite + React responsive SPA dashboard loaded with modern dark glassmorphism styling and rich cyberpunk visual assets.
-3. **`agent/`**: A globally linkable Commander.js CLI runner published on npm as `k6lab-agent`.
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           K6 LAB SYSTEM TOPOLOGY                            │
+├──────────────────────────┬──────────────────────────────────────────────────┤
+│ LOCAL DEVELOPER HARDWARE │ CENTRALIZED TELEMETRY & COCKPIT                  │
+│                          │                                                  │
+│  ┌────────────────────┐  │   ┌────────────────────┐   ┌───────────────────┐ │
+│  │   k6lab-agent CLI  │  │   │  Express API Server│   │  MongoDB Database │ │
+│  │   (Daemon Process) │  │   │ (Port 8000 Engine) │   │ (Cloud or Local)  │ │
+│  └─────────┬──────────┘  │   └─────────▲──────────┘   └─────────▲─────────┘ │
+│            │             │             │                        │           │
+│  ┌─────────▼──────────┐  │             │                        │           │
+│  │   Native Go k6     │  │   ┌─────────┴──────────┐             │           │
+│  │  (Load Engine)     ├──┼──►│  Vite/React UI     ├─────────────┘           │
+│  └────────────────────┘  │   │  (Dark Cockpit)    │                         │
+│                          │   └────────────────────┘                         │
+└──────────────────────────┴──────────────────────────────────────────────────┘
+```
 
 ---
 
-## 🔄 Sequence Workflow
+## 🌟 Key Features
+
+### 💻 Local-First Daemon Execution (`k6lab-agent`)
+- **Zero Firewall Setup**: Stress-test `localhost`, internal VPC endpoints, and private staging APIs directly from your machine.
+- **Native Performance**: Leverages Grafana's Go-based `k6` load generation engine for sub-millisecond metric precision and zero virtualization overhead.
+- **Isolated Sandbox**: Test jobs execute within sandboxed user directories (`~/.k6lab/jobs/`) with automated cleanup.
+
+### 📈 Live Telemetry Cockpit & Metrics
+- **Real-Time Latency Histograms**: Continuous tracking of `P95`, `P90`, `Average`, `Min`, and `Max` response times.
+- **HTTP Network Breakdown**: Detailed connection metrics including TTFB (Time To First Byte), DNS lookup, TLS handshake, TCP connection, and sending/receiving delays.
+- **Live Stdout Console Stream**: Live logs piped directly from the agent daemon into an interactive dark terminal console.
+- **Configurable Viewports**: 4-item scrollable viewport queues for recent test runs with animated entry transitions.
+
+### 🧠 Neural Performance Audit (AI Root-Cause Diagnosis)
+- **Instant AI Diagnosis**: On-demand LLM analysis via **OpenRouter** (`nvidia/nemotron-nano-9b-v2:free`).
+- **Actionable Insights**: Pinpoints bottleneck causes (e.g., database connection pool exhaustion, event-loop blocking, or unindexed queries) without generic boilerplate advice.
+- **Resource Recommendations**: Gives specific guidance on scaling Virtual Users (VUs) and test duration safely.
+
+### 📁 Workspace & Project Hierarchy
+- **Project & Folder Organization**: Group load test scenarios into logical project folders and workspaces.
+- **Script Management**: Embedded JavaScript k6 script editor with syntax highlighting and instant parameter override.
+
+### ✨ Premium Aesthetic & UX Design System
+- **WebGL LaserFlow Shader**: Ambient WebGL background effect on the landing page matching the rose-red accent system (`#F43F5E`).
+- **CurvedLoop Interactive Marquee**: Draggable 3D curved text marquee displaying core technical capabilities.
+- **Interactive Cursor & Effects**: Site-wide `TargetCursor` crosshair physics and `ClickSpark` visual feedback.
+- **Legal Infrastructure**: Fully integrated Privacy Policy and Terms of Service pages with global footer routing.
+
+---
+
+## 🔄 End-to-End Execution Sequence
 
 ```mermaid
 sequenceDiagram
-    participant UI as React Frontend
-    participant DB as MongoDB (Cloud/Local)
-    participant BE as Node.js Backend
-    participant AG as Local CLI Agent
+    autonumber
+    actor Dev as Developer / UI
+    participant UI as Vite/React Dashboard
+    participant BE as Express REST API
+    participant DB as MongoDB Atlas / Local
+    participant AG as k6lab-agent CLI Daemon
+    participant K6 as Native Go k6 Engine
+    participant AI as OpenRouter LLM Service
 
-    UI->>BE: 1. Configure & Dispatch Test (POST /api/tests)
-    BE->>DB: 2. Queue TestJob document
-    AG->>BE: 3. Poll pending jobs (GET /api/agents/jobs/next)
-    BE-->>AG: 4. Dispatch Job parameters & URLs
-    Note over AG: 5. Agent runs "k6 run" locally
-    AG->>BE: 6. Stream stdout logs live (PATCH /api/jobs/:id/logs)
-    BE->>UI: 7. Cockpit polls and renders live console logs
-    AG->>BE: 8. Upload final k6 metrics (POST /api/agents/jobs/complete)
-    BE->>DB: 9. Save metrics and mark job status as "completed"
-    UI->>BE: 10. Click "Audit Telemetry Run" (GET /api/test/:id/ai-suggestions)
-    BE->>BE: 11. Call aiService to query OpenRouter LLM
-    BE->>DB: 12. Save performance suggestions & return to Frontend
+    Dev->>UI: Create & Dispatch Test (URL, VUs, Duration)
+    UI->>BE: POST /api/tests (Job Payload)
+    BE->>DB: Save TestJob (status: "queued")
+    
+    loop Agent Heartbeat & Job Polling
+        AG->>BE: GET /api/agents/jobs/next (Bearer Token)
+        BE->>DB: Atomically claim job (status -> "running")
+        BE-->>AG: Dispatch Test Parameters & Script
+    end
+
+    AG->>K6: Execute "k6 run script.js"
+    K6-->>AG: Stream stdout & summary JSON
+    AG->>BE: PATCH /api/jobs/:id/logs (Stream stdout)
+    BE-->>UI: Real-time console log updates
+
+    K6->>AG: Test Execution Complete
+    AG->>BE: POST /api/agents/jobs/complete (Upload Metrics)
+    BE->>DB: Update TestJob (status -> "completed")
+    BE-->>UI: Update Dashboard Telemetry Charts
+
+    Dev->>UI: Click "Audit Telemetry Run"
+    UI->>BE: GET /api/test/:id/ai-suggestions
+    BE->>AI: Query OpenRouter (Metrics + Context)
+    AI-->>BE: Return Neural Bottleneck Diagnosis
+    BE->>DB: Save AI Diagnosis to TestJob
+    BE-->>UI: Render AI Analysis Card
+```
+
+---
+
+## 🛠️ Repository Layout
+
+```
+k6lab/
+├── backend/                  # Node.js + Express MVC Telemetry API
+│   ├── config/               # Database connection setup
+│   ├── controllers/          # Business logic handlers
+│   ├── middleware/           # JWT auth & error handling
+│   ├── models/               # Mongoose schemas (User, Agent, TestJob, Project, Folder)
+│   ├── routes/               # API endpoint routing
+│   └── services/             # AI service integrations & utilities
+├── frontend/                 # Vite + React SPA Dashboard
+│   ├── src/
+│   │   ├── components/       # UI widgets (LaserFlow, CurvedLoop, HeroDashboard, AnimatedList)
+│   │   ├── context/          # Global state (AuthContext)
+│   │   ├── layouts/          # Dashboard MainLayout frame
+│   │   ├── pages/            # Full-page views (HomePage, Dashboard, RunTest, History, etc.)
+│   │   └── services/         # Axios API clients
+│   └── vite.config.js        # Vite bundler configuration
+└── agent/                    # CLI Daemon Package (k6lab-agent)
+    └── src/
+        ├── commands/         # CLI commands (login, start, status, logout)
+        ├── services/         # Agent API client & k6 process manager
+        └── index.js          # Commander CLI entrypoint
 ```
 
 ---
 
 ## ⚙️ Prerequisites
 
-Ensure you have the following installed on your machine:
-* **Node.js** (v16+)
-* **MongoDB** (Local instance running or a MongoDB Atlas connection string)
-* **Grafana k6** (Native load-testing tool)
-  * *Mac*: `brew install k6`
-  * *Windows*: `choco install k6`
-  * *Alternatives*: Download directly from [k6.io](https://k6.io/docs/get-started/installation/)
+Before getting started, ensure you have the following installed:
+
+- **Node.js**: v18.0.0 or higher
+- **npm** / **pnpm**: Node package manager
+- **MongoDB**: Local MongoDB server or a MongoDB Atlas URI string
+- **Grafana k6**: Native load generation engine
+  - **macOS**: `brew install k6`
+  - **Linux**: `sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 ...` (See [k6 Installation Guide](https://k6.io/docs/get-started/installation/))
+  - **Windows**: `winget install k6` or `choco install k6`
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quickstart Guide
 
-Follow these steps to run the complete K6 Lab platform locally:
-
-### 1. Set Up the Backend Server
-Navigate to the `backend` directory, install dependencies, configure your environment, and start the server:
+### 1. Configure & Start Backend API
 ```bash
 cd backend
 npm install
 ```
-Create a `.env` file in the `backend/` folder:
+
+Create a `.env` file in `backend/`:
 ```env
 PORT=8000
-MONGO_URI=mongodb+srv://your_mongo_connection_string
-JWT_SECRET=your_secure_jwt_encryption_secret
-OPENROUTER_API_KEY=your_openrouter_api_token
+MONGO_URI=mongodb://localhost:27017/k6lab
+JWT_SECRET=your_jwt_secret_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
 ```
-Start the server in development mode:
+
+Start the backend dev server:
 ```bash
 npm run dev
+# Server running on http://localhost:8000
 ```
-*The API will run at `http://localhost:8000`.*
 
-### 2. Set Up the React Frontend
-Navigate to the `frontend` directory, install dependencies, and start the Vite dev server:
+### 2. Configure & Launch Frontend Dashboard
 ```bash
 cd ../frontend
 npm install
 npm run dev
+# Dashboard running on http://localhost:5173
 ```
-*The dashboard portal will open at `http://localhost:5173`. Sign up for an account to enter the dashboard!*
 
-### 3. Connect Your Local CLI Agent
-Install the global CLI agent directly from npm:
+### 3. Connect the `k6lab-agent` CLI Daemon
+Link or install the CLI agent globally:
 ```bash
-npm install -g k6lab-agent
+cd ../agent
+npm link
 ```
-Go to your K6 Lab dashboard onboarding screen, click **Generate Agent Token**, and run:
+
+Generate an Agent Token from the frontend dashboard (**Dashboard -> Agent Onboarding**), then run:
 ```bash
-k6lab-agent login your_onboard_token
+k6lab-agent login <YOUR_AGENT_TOKEN>
 k6lab-agent start
 ```
-*Leave the agent terminal open. It will show "Online" on your dashboard and wait to execute your dispatched stress runs!*
+
+*The agent daemon is now online, listening for dispatched load tests!*
 
 ---
 
-## 🔐 Security Safeguards
+## 🔐 Security Architecture
 
-* **Token-Hashing**: Agent tokens are matched on the Mongoose backend using secure, one-way **SHA-256 hashes**.
-* **Zero Secrets Leakage**: Database coordinates, Atlas paths, and API keys are strictly stored on the server's private `.env` (fully ignored by `.gitignore`). The CLI agent needs zero credentials to run tests.
-* **Isolated Scripting**: The agent only runs scripts generated inside `~/.k6lab/jobs/` and has no authority to access other directories on the developer's computer.
+- **SHA-256 Token Hashing**: Agent authentication tokens are stored using one-way SHA-256 hashes on the database.
+- **Zero Credentials on Agent**: The CLI daemon requires zero database URIs or private keys to run.
+- **Local Directory Scoping**: Test scripts are generated and cleaned up in isolated `~/.k6lab/jobs/` working paths.
+- **Encrypted Communications**: All communications between the dashboard, agent daemon, and API use standard TLS/HTTPS.
+
+---
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for details.

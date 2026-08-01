@@ -60,10 +60,10 @@ const runTest = async (req, res) => {
     }
 
     const vusVal = parseInt(vus);
-    if (isNaN(vusVal) || vusVal < 1 || vusVal > 100) {
+    if (isNaN(vusVal) || vusVal < 1 || vusVal > 500) {
       return res.status(400).json({
         success: false,
-        error: "VUs must be between 1 and 100",
+        error: "Virtual Users (VUs) must be between 1 and 500 for Free Tier execution",
       });
     }
 

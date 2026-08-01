@@ -698,7 +698,7 @@ export default function RunTest() {
                         </div>
                         <div className="space-y-1">
                           <h4 className="text-xs font-bold text-white">Generate Comprehensive Diagnostic Audit</h4>
-                          <p className="text-[11px] text-zinc-400 max-w-xs mx-auto">Get detailed root cause analysis, health scores, and step-by-step code optimizations.</p>
+                          <p className="text-[11px] text-zinc-400 max-w-xs mx-auto">Get detailed root cause analysis, health scores, metric explanations, and architectural optimizations.</p>
                         </div>
                         <button
                           onClick={() => fetchAISuggestions(job._id)}
@@ -932,7 +932,12 @@ export default function RunTest() {
 
             {/* Endpoint Method + URL */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-400">HTTP Method & Target Endpoint URL</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-zinc-400">HTTP Method &amp; Target Endpoint URL</label>
+                <span className="text-[10px] font-mono text-zinc-500 flex items-center gap-1">
+                  <Shield className="w-3 h-3 text-emerald-500" /> Authorized Target Testing Only
+                </span>
+              </div>
               <div className="flex flex-col sm:flex-row gap-2">
                 <select
                   name="method"
@@ -953,15 +958,19 @@ export default function RunTest() {
                   className="flex-1 bg-zinc-950 border border-zinc-900 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-700 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600/30 transition-all font-mono"
                 />
               </div>
+              <p className="text-[11px] text-zinc-500 font-mono flex items-center gap-1.5 pt-0.5">
+                <Info className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                <span>Notice: Ensure you own or have explicit authorization to load test public target endpoints.</span>
+              </p>
             </div>
 
             {/* Load Profile VUs & Duration */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-zinc-400 flex justify-between items-center">
-                  <span>Virtual Users (VUs)</span>
+                  <span>Virtual Users (VUs) <span className="text-[10px] text-zinc-500 font-mono">(Max 500 Free)</span></span>
                   <div className="flex gap-1">
-                    {[5, 10, 25, 50].map((v) => (
+                    {[10, 50, 100, 500].map((v) => (
                       <button
                         type="button"
                         key={v}
@@ -977,7 +986,7 @@ export default function RunTest() {
                   name="vus"
                   type="number"
                   min="1"
-                  max="100"
+                  max="500"
                   value={form.vus}
                   onChange={handleChange}
                   required

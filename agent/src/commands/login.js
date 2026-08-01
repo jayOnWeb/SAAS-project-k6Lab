@@ -1,8 +1,11 @@
 import axios from "axios";
 import { saveConfig } from "../services/configStore.js";
+import { drawBanner, drawCard, logSuccess, logError, colors, symbols } from "../utils/ui.js";
 
 export async function login(token) {
   const apiUrl = process.env.K6LAB_API_URL || "http://localhost:8000";
+
+  drawBanner("1.0.3", "CONNECTING");
 
   try {
     const res = await axios.post(
@@ -24,23 +27,30 @@ export async function login(token) {
     });
 
     console.log("");
-    console.log("K6 Lab Agent connected successfully.");
+    logSuccess("K6 Lab Agent connected and authenticated successfully!");
     console.log("");
-    console.log(`Agent: ${res.data.agent.name}`);
-    console.log(`API: ${apiUrl}`);
-    console.log("");
-    console.log("Now start the agent:");
-    console.log("");
-    console.log("k6lab-agent start");
+
+    drawCard(
+      `${symbols.check} AGENT ACCOUNT DETAILS`,
+      [
+        { label: "Agent Name", value: res.data.agent.name, color: colors.brightCyan },
+        { label: "Agent ID", value: res.data.agent.id, color: colors.gray },
+        { label: "API Server", value: apiUrl, color: colors.brightWhite },
+        "---",
+        { label: "Next Step", value: "Run 'k6lab-agent start' to launch local runner", color: colors.brightYellow }
+      ],
+      colors.green
+    );
     console.log("");
   } catch (err) {
-    console.error("");
-    console.error("Agent login failed.");
-    console.error("Reason: invalid token or backend not reachable.");
+    console.log("");
+    logError("Agent login failed.");
+    logError("Reason: Invalid agent token or backend server is unreachable.");
     if (err.response?.data?.error) {
-      console.error(`Details: ${err.response.data.error}`);
+      console.log(`${colors.gray}Details: ${err.response.data.error}${colors.reset}`);
     }
-    console.error("");
+    console.log("");
     process.exit(1);
   }
 }
+

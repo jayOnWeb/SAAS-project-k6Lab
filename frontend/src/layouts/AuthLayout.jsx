@@ -45,8 +45,12 @@ export default function AuthLayout({ children }) {
         {/* Brand Header */}
         <div>
           <Link to="/" className="inline-flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-900/30 group-hover:scale-105 transition-transform duration-200">
-              <Activity className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-red-500/40 p-1 flex items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.3)] group-hover:scale-105 transition-transform duration-200">
+              <img 
+                src="/logo.png" 
+                alt="k6lab logo" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <div className="flex flex-col">
               <span className="text-white font-bold text-xl tracking-tight flex items-center gap-1.5">

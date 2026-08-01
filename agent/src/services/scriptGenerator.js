@@ -1,34 +1,38 @@
-import fs from "fs-extra";
+import fs from "fs/promises";
 import os from "os";
 import path from "path";
 
 export async function createK6Script(job) {
   const jobDir = path.join(os.homedir(), ".k6lab", "jobs", job.id);
 
-  await fs.ensureDir(jobDir);
+  await fs.mkdir(jobDir, { recursive: true });
 
   const scriptPath = path.join(jobDir, "script.js");
   const summaryPath = path.join(jobDir, "summary.json");
   const logsPath = path.join(jobDir, "logs.txt");
   const metadataPath = path.join(jobDir, "metadata.json");
 
-  await fs.writeJson(
+  await fs.writeFile(
     metadataPath,
-    {
-      jobId: job.id,
-      name: job.name,
-      config: job.config,
-      createdAt: new Date().toISOString()
-    },
-    { spaces: 2 }
+    JSON.stringify(
+      {
+        jobId: job.id,
+        name: job.name,
+        config: job.config,
+        createdAt: new Date().toISOString()
+      },
+      null,
+      2
+    ),
+    "utf8"
   );
+
 
   const escapedSummaryPath = summaryPath.replaceAll("\\", "\\\\");
 
   const script = `
 import http from "k6/http";
 import { check, sleep } from "k6";
-
 export const options = {
   vus: Number(__ENV.K6LAB_VUS || 1),
   duration: __ENV.K6LAB_DURATION || "10s",

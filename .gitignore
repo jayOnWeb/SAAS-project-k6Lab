@@ -41,3 +41,11 @@ backend/results/
 # Large assets
 *.glb
 frontend/public/*.glb
+
+# Scratch scripts & temporary media assets
+*.mp4
+extract_frames*
+process_video*
+sample_frame*.png
+inspect_video.swift
+

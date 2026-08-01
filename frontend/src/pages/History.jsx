@@ -2,26 +2,13 @@ import { useNavigate } from "react-router-dom";
 import useTests from "../hooks/useTests";
 import { formatNumber } from "../utils/format";
 import { getStatusStyle } from "../utils/getStatusStyle";
+import { getMethodBadgeStyle } from "../utils/getMethodStyle";
 import { Activity, Trash2, Calendar, Clock, Inbox } from "lucide-react";
+import AnimatedList from "../components/AnimatedList";
 
 export default function History() {
   const { tests, loading, deleteTest } = useTests();
   const navigate = useNavigate();
-
-  const getMethodBadgeStyle = (method) => {
-    switch (method?.toUpperCase()) {
-      case "GET":
-        return "bg-emerald-950/20 border-emerald-900/40 text-emerald-400";
-      case "POST":
-        return "bg-amber-950/20 border-amber-900/40 text-amber-400";
-      case "PUT":
-        return "bg-blue-950/20 border-blue-900/40 text-blue-400";
-      case "DELETE":
-        return "bg-red-950/20 border-red-900/40 text-red-400";
-      default:
-        return "bg-zinc-900 border-zinc-800 text-zinc-400";
-    }
-  };
 
   if (loading && tests.length === 0) {
     return (
@@ -58,120 +45,68 @@ export default function History() {
           )}
         </div>
 
-        {/* TABLE CARD */}
+        {/* ANIMATED TEST HISTORY LIST */}
         {Array.isArray(tests) && tests.length > 0 ? (
-          <div className="rounded-2xl border border-zinc-900 bg-zinc-900/20 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+          <AnimatedList
+            items={tests}
+            showGradients
+            enableArrowNavigation
+            displayScrollbar
+            maxHeight="620px"
+            onItemSelect={(test) => navigate(`/dashboard/run-test?jobId=${test._id}`)}
+            renderItem={(test) => {
+              const date = new Date(test.createdAt || Date.now());
+              return (
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold font-mono tracking-wider border shrink-0 ${getMethodBadgeStyle(test.method)}`}>
+                      {test.method}
+                    </span>
+                    <div className="min-w-0">
+                      <span className="text-xs font-mono text-white font-bold truncate block" title={test.url}>
+                        {test.url}
+                      </span>
+                      <span className="text-[11px] text-zinc-500 font-mono">
+                        {date.toLocaleDateString()} at {date.toLocaleTimeString()}
+                      </span>
+                    </div>
+                  </div>
 
-                {/* HEADER */}
-                <thead>
-                  <tr className="border-b border-zinc-900 bg-zinc-900/40 text-left">
-                    {["Method", "URL", "Avg (ms)", "Fail %", "Status", "Date", "Time", ""].map((col) => (
-                      <th
-                        key={col}
-                        className="px-4 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest whitespace-nowrap"
-                      >
-                        {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
+                  <div className="flex items-center gap-6 shrink-0 font-mono text-xs self-end md:self-auto">
+                    <div className="text-right">
+                      <span className="text-[10px] text-zinc-500 block">AVG</span>
+                      <span className="text-sm font-bold text-white">{formatNumber(test.avgResponseTime)} ms</span>
+                    </div>
 
-                {/* BODY */}
-                <tbody className="divide-y divide-zinc-900">
-                  {tests.map((test) => {
-                    const date = new Date(test.createdAt);
+                    <div className="text-right">
+                      <span className="text-[10px] text-zinc-500 block">FAIL RATE</span>
+                      <span className={`text-sm font-semibold ${test.failureRate > 5 ? "text-red-400" : test.failureRate > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+                        {formatNumber(test.failureRate)}%
+                      </span>
+                    </div>
 
-                    return (
-                      <tr
-                        key={test._id}
-                        onClick={() => navigate(`/dashboard/run-test?jobId=${test._id}`)}
-                        className="hover:bg-zinc-900/30 transition-all duration-150 cursor-pointer"
-                      >
-                        {/* METHOD */}
-                        <td className="px-4 py-3.5 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold font-mono tracking-wider border ${getMethodBadgeStyle(
-                              test.method
-                            )}`}
-                          >
-                            {test.method}
-                          </span>
-                        </td>
+                    <div className="text-right">
+                      <span className="text-[10px] text-zinc-500 block">STATUS</span>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${getStatusStyle(test.healthStatus).replace("text-black", "text-zinc-900")}`}>
+                        {test.healthStatus}
+                      </span>
+                    </div>
 
-                        {/* URL */}
-                        <td className="px-4 py-3.5 max-w-[200px]">
-                          <span className="text-xs font-mono text-zinc-300 truncate block" title={test.url}>
-                            {test.url}
-                          </span>
-                        </td>
-
-                        {/* AVG */}
-                        <td className="px-4 py-3.5 whitespace-nowrap">
-                          <span className="text-sm font-mono font-bold text-white">
-                            {formatNumber(test.avgResponseTime)}
-                          </span>
-                          <span className="text-xs text-zinc-500 ml-1">ms</span>
-                        </td>
-
-                        {/* FAILURE RATE */}
-                        <td className="px-4 py-3.5 whitespace-nowrap">
-                          <span
-                            className={`text-sm font-mono font-semibold ${
-                              test.failureRate > 5
-                                ? "text-red-400"
-                                : test.failureRate > 0
-                                ? "text-amber-400"
-                                : "text-emerald-400"
-                            }`}
-                          >
-                            {formatNumber(test.failureRate)}%
-                          </span>
-                        </td>
-
-                        {/* STATUS */}
-                        <td className="px-4 py-3.5 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusStyle(test.healthStatus).replace("text-black", "text-zinc-900")}`}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5 opacity-70" />
-                            {test.healthStatus}
-                          </span>
-                        </td>
-
-                        {/* DATE */}
-                        <td className="px-4 py-3.5 whitespace-nowrap">
-                          <span className="text-xs text-zinc-400 font-medium">
-                            {date.toLocaleDateString()}
-                          </span>
-                        </td>
-
-                        {/* TIME */}
-                        <td className="px-4 py-3.5 whitespace-nowrap">
-                          <span className="text-xs font-mono text-zinc-500">
-                            {date.toLocaleTimeString()}
-                          </span>
-                        </td>
-
-                        {/* ACTIONS */}
-                        <td className="px-4 py-3.5 whitespace-nowrap text-right">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteTest(test._id);
-                            }}
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-950/50 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteTest(test._id);
+                      }}
+                      className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-950/50 rounded-lg transition-colors cursor-pointer ml-2"
+                      title="Delete Test Run"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            }}
+          />
         ) : (
           /* EMPTY STATE */
           <div className="rounded-2xl border border-dashed border-zinc-900 bg-zinc-950 flex flex-col items-center justify-center py-24 gap-3">

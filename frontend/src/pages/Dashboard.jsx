@@ -3,9 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import useTests from "../hooks/useTests";
 import { formatNumber } from "../utils/format";
+import { getStatusStyle } from "../utils/getStatusStyle";
+import { getMethodBadgeStyle } from "../utils/getMethodStyle";
 import { getAgentStatus, runTest } from "../services/testService";
 import { getProjects } from "../services/projectService";
 import AgentOnboarding from "../components/AgentOnboarding";
+import AnimatedList from "../components/AnimatedList";
 import { Activity, Play, Calendar, Zap, AlertCircle, CheckCircle2, Shield, Cpu, Folder, Layers, Plus, ArrowRight, RefreshCw, Server, Search } from "lucide-react";
 
 export default function Dashboard() {
@@ -254,7 +257,7 @@ export default function Dashboard() {
             <select
               value={quickMethod}
               onChange={(e) => setQuickMethod(e.target.value)}
-              className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-amber-400 font-bold font-mono focus:outline-none focus:border-red-600"
+              className={`bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs font-bold font-mono focus:outline-none focus:border-red-600 ${getMethodBadgeStyle(quickMethod)}`}
             >
               {["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => (
                 <option key={m} value={m}>{m}</option>
@@ -396,15 +399,17 @@ export default function Dashboard() {
               </Link>
             </div>
           ) : (
-            <div className="bg-zinc-900/20 border border-zinc-900 rounded-2xl overflow-hidden divide-y divide-zinc-900/80">
-              {tests.slice(0, 8).map((test) => (
-                <div
-                  key={test._id}
-                  onClick={() => navigate(`/dashboard/run-test?jobId=${test._id}`)}
-                  className="p-4 hover:bg-zinc-900/50 transition-colors cursor-pointer flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3"
-                >
+            <AnimatedList
+              items={tests}
+              showGradients
+              enableArrowNavigation
+              displayScrollbar
+              maxHeight="520px"
+              onItemSelect={(test) => navigate(`/dashboard/run-test?jobId=${test._id}`)}
+              renderItem={(test) => (
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 w-full">
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-[10px] font-mono font-bold px-2 py-1 rounded bg-zinc-950 border border-zinc-800 text-amber-400 shrink-0">
+                    <span className={`text-[10px] font-mono font-bold px-2 py-1 rounded border shrink-0 ${getMethodBadgeStyle(test.method || test.config?.method || "GET")}`}>
                       {test.method || test.config?.method || "GET"}
                     </span>
                     <div className="min-w-0">
@@ -439,8 +444,8 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+            />
           )}
         </div>
 

@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename)
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   optimizeDeps: {
-    include: ['react-is', 'recharts'],
+    include: ['react-is', 'recharts', 'ogl'],
   },
   resolve: {
     alias: {

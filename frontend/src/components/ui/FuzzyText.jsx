@@ -19,11 +19,11 @@ export default function FuzzyText({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     let animationFrameId;
 
     const offCanvas = document.createElement('canvas');
-    const offCtx = offCanvas.getContext('2d');
+    const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
 
     const updateCanvasSize = () => {
       const tempDiv = document.createElement('div');

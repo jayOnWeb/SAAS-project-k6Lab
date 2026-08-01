@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { getProjectById, createFolder, deleteFolder } from "../services/projectService";
 import { getAllTests } from "../services/testService";
 import { formatNumber } from "../utils/format";
+import { getMethodBadgeStyle } from "../utils/getMethodStyle";
 import { Folder, Layers, Plus, Trash2, Play, ArrowLeft, Activity, Shield, Clock, Server, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function ProjectDetailsPage() {
@@ -242,7 +243,7 @@ export default function ProjectDetailsPage() {
                   >
                     <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-amber-400">
+                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${getMethodBadgeStyle(test.config?.method || test.method)}`}>
                           {test.config?.method || test.method}
                         </span>
                         <h4 className="text-xs font-bold text-white truncate">{test.name}</h4>

@@ -7,6 +7,8 @@ import PlatformPage from "./pages/PlatformPage";
 import DocsPage from "./pages/DocsPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/TermsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./layouts/MainLayout";
 
@@ -45,12 +47,16 @@ export default function App() {
         <SmoothScroll>
           <ScrollToTop />
         <Routes>
-          {/* 5 Core Public Marketing Pages */}
+          {/* Public Marketing & Legal Pages */}
           <Route path="/" element={<HomePage />} />
           <Route path="/features" element={<FeaturesPage />} />
           <Route path="/how-it-works" element={<HowItWorksPage />} />
           <Route path="/platform" element={<PlatformPage />} />
           <Route path="/docs" element={<DocsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/terms-and-conditions" element={<TermsPage />} />
 
           {/* Authentication Pages (Login, Signup & Register) */}
           <Route path="/login" element={<LoginPage />} />

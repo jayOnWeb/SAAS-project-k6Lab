@@ -25,6 +25,7 @@
     "gsap": "^3.15.0",
     "locomotive-scroll": "^5.0.0-beta.21",
     "lucide-react": "^1.17.0",
+    "ogl": "^1.0.11",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-is": "^19.2.8",

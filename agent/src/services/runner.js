@@ -1,5 +1,5 @@
 import { spawn } from "child_process";
-import fs from "fs-extra";
+import fs from "fs/promises";
 
 let currentProcess = null;
 

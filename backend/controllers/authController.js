@@ -100,8 +100,34 @@ const getMe = async (req, res) => {
   }
 };
 
+// @desc    Delete logged in user account and all associated test telemetry data
+// @route   DELETE /api/auth/account
+// @access  Private
+const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Delete user test jobs, paired agents, and user profile
+    const TestJob = require("../models/TestJob");
+    const Agent = require("../models/Agent");
+
+    await TestJob.deleteMany({ userId });
+    await Agent.deleteMany({ userId });
+    await User.findByIdAndDelete(userId);
+
+    res.json({
+      success: true,
+      message: "Account and associated workspace data deleted successfully",
+    });
+  } catch (err) {
+    console.error("Delete account error:", err);
+    res.status(500).json({ error: "Failed to delete account", details: err.message });
+  }
+};
+
 module.exports = {
   signup,
   login,
   getMe,
+  deleteAccount,
 };

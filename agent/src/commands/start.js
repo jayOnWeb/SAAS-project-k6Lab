@@ -1,6 +1,16 @@
-import fs from "fs-extra";
+import fs from "fs/promises";
 import path from "path";
+
+async function pathExists(filePath) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 import { checkK6Installed } from "../services/k6Checker.js";
+import { getConfig } from "../services/configStore.js";
 import {
   sendHeartbeat,
   getNextJob,
@@ -13,41 +23,65 @@ import {
 import { createK6Script } from "../services/scriptGenerator.js";
 import { runK6, stopCurrentK6Process } from "../services/runner.js";
 import { sleep } from "../utils/sleep.js";
+import {
+  drawBanner,
+  drawCard,
+  drawSummaryTable,
+  logInfo,
+  logSuccess,
+  logWarn,
+  logError,
+  colors,
+  symbols
+} from "../utils/ui.js";
 
 let isShuttingDown = false;
 
 process.on("SIGINT", async () => {
   console.log("");
-  console.log("Stopping K6 Lab Agent...");
+  logWarn("Stopping K6 Lab Agent runner...");
 
   isShuttingDown = true;
   stopCurrentK6Process();
 
-  console.log("Agent stopped.");
+  logSuccess("Agent runner stopped gracefully.");
+  console.log("");
   process.exit(0);
 });
 
 export async function start() {
-  console.log("");
-  console.log("Starting K6 Lab Agent...");
-  console.log("");
+  drawBanner("1.0.3", "ONLINE");
 
   try {
-    console.log("Checking k6 installation...");
-    await checkK6Installed();
+    logInfo("Checking k6 engine installation...");
+    const k6Version = await checkK6Installed();
 
-    console.log("k6 is installed and ready.");
+    let config = { agentName: "Local Agent", apiUrl: "http://localhost:8000" };
+    try {
+      config = await getConfig();
+    } catch (e) {}
+
     console.log("");
-    console.log("Connected to K6 Lab dashboard.");
-    console.log("Agent is online.");
+    drawCard(
+      `${symbols.network} READY & WAITING FOR DASHBOARD JOBS`,
+      [
+        { label: "Agent Name", value: config.agentName, color: colors.brightCyan },
+        { label: "API Server", value: config.apiUrl, color: colors.brightWhite },
+        { label: "Load Engine", value: k6Version, color: colors.brightGreen },
+        { label: "Status", value: "LISTENING (POLLING 3s)", color: colors.green },
+        "---",
+        { label: "Shortcut", value: "Press Ctrl+C to stop agent", color: colors.gray }
+      ],
+      colors.cyan
+    );
     console.log("");
-    console.log("You can now create a test from your dashboard.");
-    console.log("Waiting for jobs...");
-    console.log("");
+
+    let heartbeatCount = 0;
 
     while (!isShuttingDown) {
       try {
         await sendHeartbeat();
+        heartbeatCount++;
 
         const job = await getNextJob();
 
@@ -57,15 +91,20 @@ export async function start() {
         }
 
         console.log("");
-        console.log(`New test received: ${job.name || job.id}`);
+        drawCard(
+          `${symbols.lightning} NEW TEST JOB RECEIVED`,
+          [
+            { label: "Test Name", value: job.name || job.id, color: colors.brightYellow },
+            { label: "Target Method", value: job.config.method, color: colors.brightCyan },
+            { label: "Target URL", value: job.config.url, color: colors.brightWhite },
+            { label: "Virtual Users", value: `${job.config.vus} VUs`, color: colors.brightGreen },
+            { label: "Duration", value: job.config.duration, color: colors.brightGreen }
+          ],
+          colors.magenta
+        );
         console.log("");
-        console.log(`${job.config.method} ${job.config.url}`);
-        console.log(`VUs: ${job.config.vus}`);
-        console.log(`Duration: ${job.config.duration}`);
-        console.log("");
-        console.log("Running k6 locally...");
-        console.log("Please keep this terminal open.");
-        console.log("You can monitor progress in your K6 Lab dashboard.");
+        logInfo("Executing k6 script locally...");
+        console.log(`${colors.gray}Please keep this terminal window open. Progress can be monitored in your dashboard.${colors.reset}`);
         console.log("");
 
         let cancelCheckInterval = null;
@@ -77,7 +116,7 @@ export async function start() {
             const statusData = await getJobStatus(job.id);
             if (statusData && statusData.status === "cancel_requested") {
               console.log("");
-              console.log("--> Cancellation requested from dashboard. Aborting run...");
+              logWarn("Cancellation requested from dashboard. Aborting k6 run...");
               localCancelled = true;
               stopCurrentK6Process();
               clearInterval(cancelCheckInterval);
@@ -98,8 +137,9 @@ export async function start() {
           if (cancelCheckInterval) clearInterval(cancelCheckInterval);
 
           let summary = null;
-          if (await fs.pathExists(summaryPath)) {
-            summary = await fs.readJson(summaryPath);
+          if (await pathExists(summaryPath)) {
+            const rawSum = await fs.readFile(summaryPath, "utf8");
+            summary = JSON.parse(rawSum);
           }
 
           await uploadLogs(job.id, runResult.logs);
@@ -111,12 +151,17 @@ export async function start() {
           });
 
           console.log("");
-          console.log("Test completed successfully.");
+          logSuccess(`Test "${job.name || job.id}" completed successfully!`);
           console.log("");
-          console.log("Results uploaded to your K6 Lab dashboard.");
-          console.log("Open the dashboard to view the full performance report.");
+
+          if (summary) {
+            drawSummaryTable(summary);
+            console.log("");
+          }
+
+          logInfo("Results & logs uploaded to K6 Lab Cloud dashboard.");
           console.log("");
-          console.log("Waiting for jobs...");
+          logInfo("Waiting for new jobs...");
           console.log("");
         } catch (err) {
           if (cancelCheckInterval) clearInterval(cancelCheckInterval);
@@ -124,7 +169,7 @@ export async function start() {
           if (localCancelled) {
             await cancelJob(job.id, "Test cancelled by user from dashboard");
             console.log("");
-            console.log("Test execution successfully cancelled.");
+            logWarn("Test execution successfully cancelled.");
             console.log("");
           } else {
             // Check if backend cancellation requested in middle of execution
@@ -133,14 +178,14 @@ export async function start() {
               if (currentStatus && (currentStatus.status === "cancel_requested" || currentStatus.status === "cancelled")) {
                 await cancelJob(job.id, "Test cancelled by user from dashboard");
                 console.log("");
-                console.log("Test execution successfully cancelled.");
+                logWarn("Test execution successfully cancelled.");
                 console.log("");
-                console.log("Waiting for jobs...");
+                logInfo("Waiting for new jobs...");
                 console.log("");
                 
                 if (scriptPath) {
                   try {
-                    await fs.remove(path.dirname(scriptPath));
+                    await fs.rm(path.dirname(scriptPath), { recursive: true, force: true });
                   } catch (cleanErr) {}
                 }
                 continue;
@@ -152,39 +197,37 @@ export async function start() {
             await failJob(job.id, err.message);
 
             console.log("");
-            console.log("Test failed.");
+            logError("Test execution failed.");
+            logError(`Reason: ${err.message}`);
             console.log("");
-            console.log("Reason:");
-            console.log(err.message);
-            console.log("");
-            console.log("The failure details were uploaded to your dashboard.");
-            console.log("Please check your local API and try again.");
+            logInfo("Failure details & logs were reported to your dashboard.");
             console.log("");
           }
 
-          console.log("Waiting for jobs...");
+          logInfo("Waiting for new jobs...");
           console.log("");
         } finally {
           // 🧹 Clean up local job folder on success or error
           if (scriptPath) {
             try {
-              await fs.remove(path.dirname(scriptPath));
+              await fs.rm(path.dirname(scriptPath), { recursive: true, force: true });
             } catch (cleanErr) {}
           }
         }
       } catch (err) {
-        console.error("Agent connection error:", err.message);
+        logError(`Agent connection error: ${err.message}`);
         await sleep(5000);
       }
     }
   } catch (err) {
-    console.error("");
-    console.error(err.message);
-    console.error("");
-    console.error("Fix the issue and run:");
-    console.error("");
-    console.error("k6lab-agent start");
-    console.error("");
+    console.log("");
+    logError(err.message);
+    console.log("");
+    console.log(`${colors.gray}Fix the issue and restart with:${colors.reset}`);
+    console.log(`${colors.brightYellow}k6lab-agent start${colors.reset}`);
+    console.log("");
     process.exit(1);
   }
 }
+
+

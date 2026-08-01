@@ -1,7 +1,15 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, ShieldCheck, Terminal, Heart, Sparkles, Send } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Terminal, Heart, Sparkles } from 'lucide-react';
 import { BorderBeam } from './ui/border-beam';
+import SpecularButton from './SpecularButton';
+
+const GithubIcon = ({ className = "w-4 h-4" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+    <path d="M9 18c-4.51 2-5-2-7-2" />
+  </svg>
+);
 
 export default function Footer() {
   const handleNavClick = () => {
@@ -42,7 +50,7 @@ export default function Footer() {
         </div>
 
         {/* Directory links grid */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-10 pb-12 border-b border-white/10">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-white/10">
           {/* Brand Column */}
           <div className="md:col-span-2 space-y-4">
             <Link to="/" className="flex items-center gap-3 group" onClick={handleNavClick}>
@@ -79,44 +87,72 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 2: Developer */}
+          {/* Column 2: Legal & Resources */}
           <div className="space-y-3">
-            <h4 className="text-xs font-mono text-white font-bold uppercase tracking-widest">Developer</h4>
+            <h4 className="text-xs font-mono text-white font-bold uppercase tracking-widest">Legal &amp; Resources</h4>
             <ul className="space-y-2 text-sm text-zinc-400 font-sans">
+              <li><Link to="/privacy" onClick={handleNavClick} className="hover:text-red-400 transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/terms" onClick={handleNavClick} className="hover:text-red-400 transition-colors">Terms &amp; Conditions</Link></li>
               <li><Link to="/docs#k6-install" onClick={handleNavClick} className="hover:text-red-400 transition-colors">Install k6 CLI</Link></li>
               <li><Link to="/docs#agent-install" onClick={handleNavClick} className="hover:text-red-400 transition-colors">Install Agent</Link></li>
-              <li><Link to="/platform" onClick={handleNavClick} className="hover:text-red-400 transition-colors">Telemetry Stream</Link></li>
-              <li><Link to="/features" onClick={handleNavClick} className="hover:text-red-400 transition-colors">AI Audit Engine</Link></li>
             </ul>
-          </div>
-
-          {/* Column 3: Newsletter */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-mono text-white font-bold uppercase tracking-widest">Stay Updated</h4>
-            <p className="text-xs text-zinc-400">Subscribe for load testing benchmarks and performance engineering tips.</p>
-            <form onSubmit={(e) => e.preventDefault()} className="flex items-center gap-1 bg-zinc-950 border border-white/10 p-1.5 rounded-xl">
-              <input
-                type="email"
-                placeholder="developer@company.com"
-                className="w-full bg-transparent px-2 text-xs font-mono text-white placeholder-zinc-500 focus:outline-none"
-              />
-              <button type="submit" className="p-2 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-colors cursor-pointer">
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            </form>
           </div>
         </div>
 
         {/* Footer Bottom Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500 font-mono">
-          <div>
-            © {new Date().getFullYear()} K6 LAB. Your machine runs the test. K6 Lab makes sense of the result.
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-zinc-400 font-mono">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span>© {new Date().getFullYear()} K6 LAB.</span>
+            <span className="hidden sm:inline text-zinc-600">•</span>
+            <Link to="/privacy" onClick={handleNavClick} className="hover:text-red-400 transition-colors">Privacy Policy</Link>
+            <span className="text-zinc-600">•</span>
+            <Link to="/terms" onClick={handleNavClick} className="hover:text-red-400 transition-colors">Terms &amp; Conditions</Link>
           </div>
-          <div className="flex items-center gap-2 text-red-400 font-medium">
-            <span>Red / Black / White SaaS Edition</span>
+
+          {/* Mysterious Dev SpecularButton Integration */}
+          <div className="flex items-center gap-3 bg-zinc-950/80 border border-red-500/20 px-4 py-2 rounded-2xl shadow-[0_0_25px_rgba(239,68,68,0.15)]">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+              <span className="text-[11px] font-mono text-zinc-400 tracking-wider uppercase">
+                Mysterious Dev:
+              </span>
+            </div>
+
+            <SpecularButton
+              size="sm"
+              radius={12}
+              tint="#ef4444"
+              tintOpacity={0.15}
+              blur={8}
+              textColor="#f5f5f5"
+              lineColor="#ef4444"
+              baseColor="#71717a"
+              intensity={1.5}
+              shineSize={15}
+              shineFade={35}
+              thickness={1.5}
+              speed={0.4}
+              followMouse={true}
+              proximity={300}
+              autoAnimate={false}
+              onClick={() => window.open('https://github.com/jayOnWeb', '_blank', 'noopener,noreferrer')}
+              className="px-3.5 py-2 font-mono text-xs font-semibold tracking-wide hover:scale-105 transition-transform"
+            >
+              <span className="flex items-center gap-2">
+                <GithubIcon className="w-4 h-4 text-red-400 transition-transform duration-300 group-hover:rotate-12" />
+                <span className="text-white font-bold font-mono">@jayOnWeb</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/40 uppercase tracking-widest font-mono font-bold">
+                  ⚡ Arch
+                </span>
+              </span>
+            </SpecularButton>
           </div>
         </div>
       </div>
     </footer>
   );
 }
+

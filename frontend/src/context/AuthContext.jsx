@@ -72,8 +72,24 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  // Delete Account handler
+  const deleteAccount = async () => {
+    try {
+      await api.delete("/auth/account");
+      localStorage.removeItem("token");
+      setUser(null);
+      return { success: true };
+    } catch (err) {
+      console.error("Delete Account Context error:", err);
+      return {
+        success: false,
+        error: err.response?.data?.error || "Failed to delete account.",
+      };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );

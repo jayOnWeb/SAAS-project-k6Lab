@@ -6,6 +6,13 @@ export function checkK6Installed() {
       shell: false
     });
 
+    let output = "";
+    if (child.stdout) {
+      child.stdout.on("data", (data) => {
+        output += data.toString();
+      });
+    }
+
     child.on("error", () => {
       reject(
         new Error(
@@ -16,7 +23,9 @@ export function checkK6Installed() {
 
     child.on("close", (code) => {
       if (code === 0) {
-        resolve(true);
+        const match = output.trim().match(/k6\s+(v[\d.]+)/i) || output.trim().match(/(v[\d.]+)/i);
+        const versionStr = match ? match[1] : output.trim().split("\n")[0] || "Installed";
+        resolve(versionStr);
       } else {
         reject(new Error("k6 is installed but not working correctly."));
       }

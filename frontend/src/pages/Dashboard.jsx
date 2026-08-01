@@ -404,7 +404,7 @@ export default function Dashboard() {
               showGradients
               enableArrowNavigation
               displayScrollbar
-              maxHeight="520px"
+              maxHeight="315px"
               onItemSelect={(test) => navigate(`/dashboard/run-test?jobId=${test._id}`)}
               renderItem={(test) => (
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 w-full">

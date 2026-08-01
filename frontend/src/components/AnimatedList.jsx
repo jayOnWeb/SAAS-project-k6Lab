@@ -11,7 +11,7 @@ export default function AnimatedList({
   className = '',
   itemClassName = '',
   renderItem,
-  maxHeight = '480px',
+  maxHeight = '315px',
   initialSelectedIndex = -1
 }) {
   const [selectedIndex, setSelectedIndex] = useState(initialSelectedIndex);

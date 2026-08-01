@@ -49,10 +49,10 @@ export default function History() {
         {Array.isArray(tests) && tests.length > 0 ? (
           <AnimatedList
             items={tests}
-            showGradients
+            showGradients={false}
             enableArrowNavigation
-            displayScrollbar
-            maxHeight="620px"
+            displayScrollbar={false}
+            maxHeight="none"
             onItemSelect={(test) => navigate(`/dashboard/run-test?jobId=${test._id}`)}
             renderItem={(test) => {
               const date = new Date(test.createdAt || Date.now());

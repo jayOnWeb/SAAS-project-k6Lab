@@ -22,28 +22,33 @@ import TelemetryBento from '../components/TelemetryBento';
 import { Badge } from '../components/ui/badge';
 import { GridPattern } from '../components/ui/grid-pattern';
 import { BorderBeam } from '../components/ui/border-beam';
-import DotField from '../components/ui/DotField';
+import LaserFlow from '../components/LaserFlow';
+import CurvedLoop from '../components/CurvedLoop';
 import FuzzyText from '../components/ui/FuzzyText';
 import GlitchText from '../components/ui/GlitchText';
+
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col selection:bg-red-500/40 selection:text-white relative overflow-hidden">
-      {/* React Bits Interactive DotField Background Header */}
-      <div className="absolute top-0 left-0 right-0 h-[800px] pointer-events-auto z-0 overflow-hidden opacity-60">
-        <DotField
-          dotRadius={1.5}
-          dotSpacing={14}
-          bulgeStrength={67}
-          glowRadius={160}
-          sparkle={false}
-          waveAmplitude={0}
-          cursorRadius={500}
-          cursorForce={0.1}
-          bulgeOnly
-          gradientFrom="#ef4444"
-          gradientTo="#b91c1c"
-          glowColor="#120F17"
-        />
+      {/* LaserFlow Background Effect */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1200px] h-[900px] pointer-events-none z-0 overflow-hidden opacity-70 flex items-center justify-center">
+        <div style={{ width: '1080px', height: '1080px', position: 'relative' }}>
+          <LaserFlow
+            color="#F43F5E"
+            wispDensity={1}
+            flowSpeed={0.35}
+            verticalSizing={2}
+            horizontalSizing={0.5}
+            fogIntensity={0.45}
+            fogScale={0.3}
+            wispSpeed={15}
+            wispIntensity={5}
+            flowStrength={0.25}
+            decay={1.1}
+            horizontalBeamOffset={0}
+            verticalBeamOffset={-0.5}
+          />
+        </div>
       </div>
 
       {/* Background Animated Grid Pattern with Spots */}
@@ -69,18 +74,6 @@ export default function HomePage() {
       <main className="flex-1 pt-24 pb-20 relative z-10">
         {/* HERO SECTION */}
         <section className="max-w-7xl mx-auto px-6 pt-12 pb-20 text-center relative z-10">
-          {/* Eyebrow Pill */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex justify-center mb-6"
-          >
-            <Badge variant="glow" pulse className="px-4 py-1.5 text-xs">
-              <Sparkles className="w-3.5 h-3.5 mr-1" /> LOCAL-FIRST LOAD TESTING PLATFORM v2.4
-            </Badge>
-          </motion.div>
-
           {/* Headline with FuzzyText & GlitchText */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -137,11 +130,43 @@ export default function HomePage() {
             </Link>
           </motion.div>
 
-          {/* Live Hero Dashboard Interactive Cockpit */}
+          {/* INTERACTIVE CURVED MARQUEE TECH FACTS */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="pt-6 relative z-10 overflow-hidden"
+          >
+            <CurvedLoop
+              marqueeText="LOCAL-FIRST EXECUTION ✦ RUNS ON YOUR OWN HARDWARE ✦ NATIVE GO K6 ENGINE ✦ INSTANT AI ROOT CAUSE DIAGNOSIS ✦ REAL-TIME TELEMETRY HISTOGRAMS ✦ ZERO CLOUD DATA LEAKAGE ✦ CLI DAEMON AGENT ✦ PRIVATE LOCALHOST & VPC TESTING ✦ "
+              speed={2}
+              curveAmount={160}
+              direction="left"
+              interactive
+              className="fill-white text-red-500 font-extrabold tracking-widest text-2xl sm:text-4xl uppercase opacity-90 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]"
+            />
+          </motion.div>
+        </section>
+
+        {/* SECTION 2: INTERACTIVE DASHBOARD COCKPIT */}
+        <section className="max-w-7xl mx-auto px-6 py-16 relative z-10 border-t border-white/5">
+          <div className="text-center mb-12">
+            <Badge variant="glow" pulse className="px-4 py-1.5 text-xs mb-4">
+              LIVE COCKPIT PREVIEW
+            </Badge>
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight font-['Space_Grotesk']">
+              Experience the <span className="text-gradient-red">Real-Time Control Room</span>
+            </h2>
+            <p className="text-zinc-400 max-w-2xl mx-auto mt-4 text-base sm:text-lg">
+              Explore the interactive cockpit below to see how K6 Lab streams latency histograms, active VUs, and instant AI diagnostics.
+            </p>
+          </div>
+
           <motion.div
             initial={{ opacity: 0, y: 35 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
             className="max-w-5xl mx-auto"
           >
             <HeroDashboard />

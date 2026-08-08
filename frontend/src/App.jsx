@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ScrollToTop from "./components/ScrollToTop";
 import HomePage from "./pages/HomePage";
+import WhyK6LabPage from "./pages/WhyK6LabPage";
 import FeaturesPage from "./pages/FeaturesPage";
 import HowItWorksPage from "./pages/HowItWorksPage";
 import PlatformPage from "./pages/PlatformPage";
@@ -49,6 +50,8 @@ export default function App() {
         <Routes>
           {/* Public Marketing & Legal Pages */}
           <Route path="/" element={<HomePage />} />
+          <Route path="/why" element={<WhyK6LabPage />} />
+          <Route path="/why-k6lab" element={<WhyK6LabPage />} />
           <Route path="/features" element={<FeaturesPage />} />
           <Route path="/how-it-works" element={<HowItWorksPage />} />
           <Route path="/platform" element={<PlatformPage />} />

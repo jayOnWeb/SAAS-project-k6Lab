@@ -80,6 +80,7 @@ export default function Footer() {
             <h4 className="text-xs font-mono text-white font-bold uppercase tracking-widest">Navigation</h4>
             <ul className="space-y-2 text-sm text-zinc-400 font-sans">
               <li><Link to="/" onClick={handleNavClick} className="hover:text-red-400 transition-colors">Home</Link></li>
+              <li><Link to="/why" onClick={handleNavClick} className="hover:text-red-400 transition-colors">Why K6 Lab</Link></li>
               <li><Link to="/features" onClick={handleNavClick} className="hover:text-red-400 transition-colors">Features</Link></li>
               <li><Link to="/how-it-works" onClick={handleNavClick} className="hover:text-red-400 transition-colors">How It Works</Link></li>
               <li><Link to="/platform" onClick={handleNavClick} className="hover:text-red-400 transition-colors">Platform</Link></li>

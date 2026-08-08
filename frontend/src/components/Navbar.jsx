@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
   { label: 'Home', path: '/' },
+  { label: 'Why K6 Lab', path: '/why' },
   { label: 'Features', path: '/features' },
   { label: 'How It Works', path: '/how-it-works' },
   { label: 'Platform', path: '/platform' },

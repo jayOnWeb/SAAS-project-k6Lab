@@ -31,7 +31,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col selection:bg-red-500/40 selection:text-white relative overflow-hidden">
       {/* LaserFlow Background Effect */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1200px] h-[900px] pointer-events-none z-0 overflow-hidden opacity-70 flex items-center justify-center">
+      <div className="absolute top-10 sm:top-16 md:top-20 left-1/2 -translate-x-1/2 w-full max-w-[1200px] h-[950px] pointer-events-none z-0 overflow-hidden opacity-70 flex items-center justify-center">
         <div style={{ width: '1080px', height: '1080px', position: 'relative' }}>
           <LaserFlow
             color="#F43F5E"
@@ -47,7 +47,7 @@ export default function HomePage() {
             flowStrength={0.25}
             decay={1.1}
             horizontalBeamOffset={0}
-            verticalBeamOffset={-0.5}
+            verticalBeamOffset={-0.35}
           />
         </div>
       </div>
@@ -72,9 +72,20 @@ export default function HomePage() {
 
       <Navbar />
 
-      <main className="flex-1 pt-20 pb-20 relative z-10">
+      <main className="flex-1 pt-24 sm:pt-28 md:pt-36 pb-20 relative z-10">
         {/* HERO SECTION */}
-        <section className="max-w-7xl mx-auto px-6 pt-8 sm:pt-12 md:pt-16 pb-20 text-center relative z-10">
+        <section className="max-w-7xl mx-auto px-6 pt-6 sm:pt-10 md:pt-14 pb-20 sm:pb-28 text-center relative z-10 flex flex-col items-center justify-center">
+          {/* Top Pill / Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-950/50 border border-red-500/40 backdrop-blur-md text-xs font-mono text-red-400 mb-8 shadow-[0_0_25px_rgba(239,68,68,0.25)]"
+          >
+            <Sparkles size={14} className="text-red-500" />
+            <span>LOCAL-FIRST LOAD TESTING &amp; REAL-TIME TELEMETRY</span>
+          </motion.div>
+
           {/* Headline with FuzzyText & GlitchText */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -139,7 +150,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="pt-6 relative z-10 overflow-hidden"
+            className="pt-6 relative z-10 overflow-hidden w-full"
           >
             <CurvedLoop
               marqueeText="LOCAL-FIRST EXECUTION ✦ RUNS ON YOUR OWN HARDWARE ✦ NATIVE GO K6 ENGINE ✦ INSTANT AI ROOT CAUSE DIAGNOSIS ✦ REAL-TIME TELEMETRY HISTOGRAMS ✦ ZERO CLOUD DATA LEAKAGE ✦ CLI DAEMON AGENT ✦ PRIVATE LOCALHOST & VPC TESTING ✦ "

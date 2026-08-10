@@ -5,15 +5,12 @@
 **High-Performance Local Load Testing Runner for the K6 Lab Platform**
 
 [![npm version](https://img.shields.io/npm/v/k6lab-agent.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/k6lab-agent)
-[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717.svg?style=flat-square&logo=github)](https://github.com/jayOnWeb/SAAS-project-k6Lab/tree/main/agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![k6 Compatible](https://img.shields.io/badge/k6-compatible-7d64ff.svg?style=flat-square)](https://k6.io)
 
 <p align="center">
-  <a href="#-web-platform--dashboard">Web Platform</a> •
-  <a href="https://github.com/jayOnWeb/SAAS-project-k6Lab/tree/main/agent">GitHub Repo</a> •
-  <a href="#-key-features">Key Features</a> •
+  <a href="#-features">Features</a> •
   <a href="#-architecture--how-it-works">How It Works</a> •
   <a href="#-prerequisites">Prerequisites</a> •
   <a href="#-quick-start">Quick Start</a> •
@@ -25,12 +22,9 @@
 
 ---
 
-## 🌐 Web Platform & Dashboard
+## 🌐 Overview
 
-`k6lab-agent` is the official companion CLI for **K6 Lab**, the modern developer platform for API load and stress testing.
-
-> 🚀 **Access the Web App:** **[https://k6lab.com](https://k6lab.com)** *(or your self-hosted deployment)*  
-> Configure tests, manage target endpoints, view real-time latency histograms, and generate AI-powered performance diagnostics from our visual web cockpit.
+`k6lab-agent` is the official companion CLI for **K6 Lab**, the modern developer platform for API load and stress testing. It connects your local machine with the K6 Lab dashboard to execute high-throughput load tests on local endpoints (`localhost`) or private networks with zero configuration hassle.
 
 ---
 
@@ -51,7 +45,6 @@ When testing private microservices, staging environments, or local endpoints lik
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    K6 Lab Web Dashboard                     │
-│               (https://k6lab.com / Web App)                │
 │  - Configure Virtual Users (VUs) & Duration                 │
 │  - Live latency histograms & AI telemetry analysis          │
 └──────────────────────────────┬──────────────────────────────┘
@@ -78,7 +71,7 @@ When testing private microservices, staging environments, or local endpoints lik
 
 ---
 
-## ✨ Key Features
+## ✨ Features
 
 - ⚡ **Native k6 Execution**: Spawns the official native `k6` Go binary for maximum concurrency with minimal CPU and memory overhead.
 - 📡 **Real-time Log Streaming**: Pipes terminal logs and execution progress directly into your live web session.
@@ -121,7 +114,7 @@ Check with: `node -v` (Download from [nodejs.org](https://nodejs.org/))
   sudo apt-get install k6
   ```
 
-* **Docker / Manual Binary**: Download the standalone binary from [k6 Releases](https://github.com/grafana/k6/releases).
+* **Docker / Standalone Binary**: Download directly from [k6 Releases](https://github.com/grafana/k6/releases).
 
 ---
 
@@ -142,7 +135,7 @@ k6lab-agent --version
 ---
 
 ### Step 2: Get Your Agent Token
-1. Open the [K6 Lab Dashboard](https://k6lab.com).
+1. Open your **K6 Lab Dashboard**.
 2. Navigate to **Agent Settings** / **Connect Local Agent**.
 3. Copy your unique **Agent Token**.
 
@@ -155,7 +148,7 @@ Authenticate your local agent using your token:
 k6lab-agent login <YOUR_AGENT_TOKEN>
 ```
 
-> **Using a Custom / Self-Hosted Backend?**  
+> **Using a Custom / Remote Backend?**  
 > Pass the `--url` (or `-u`) flag:
 > ```bash
 > k6lab-agent login <YOUR_AGENT_TOKEN> --url https://api.yourdomain.com
@@ -173,20 +166,20 @@ k6lab-agent start
 You will see the active cockpit banner:
 ```txt
 ┌────────────────────────────────────────────────────────────┐
-│  ⚡ K6 LAB AGENT v1.0.4                        🟢 ONLINE    │
+│  ⚡ K6 LAB AGENT v1.0.5                        🟢 ONLINE    │
 └────────────────────────────────────────────────────────────┘
 ┌──────────────────────────────────────────────────────────────┐
 │  📡 READY & WAITING FOR DASHBOARD JOBS                       │
 ├──────────────────────────────────────────────────────────────┤
-│  Agent Name   : My Macbook Runner                            │
-│  API Server   : https://k6lab.com                            │
+│  Agent Name   : My Local Runner                              │
+│  API Server   : http://localhost:8000                        │
 │  Load Engine  : k6 v0.48.0 (native)                          │
 │  Status       : LISTENING (POLLING 3s)                       │
 │  Shortcut     : Press Ctrl+C to stop agent                   │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-Now, whenever you click **"Run Test"** on the [K6 Lab Web Dashboard](https://k6lab.com), your local agent will automatically pick up the job, run the test locally, and stream telemetry back live! 🎉
+Now, whenever you trigger a test run from your K6 Lab Web Dashboard, your local agent will automatically pick up the job, run the test locally, and stream telemetry back live! 🎉
 
 ---
 
@@ -221,29 +214,26 @@ You can optionally override configuration using environment variables:
 ### 2. `Invalid agent token or backend server is unreachable`
 **Solution**:
 - Double check that your token was copied correctly from the dashboard.
-- If using a cloud backend or self-hosted server, make sure to pass `--url`:
+- If using a remote backend server, make sure to pass `--url`:
   ```bash
-  k6lab-agent login YOUR_TOKEN --url https://api.k6lab.com
+  k6lab-agent login YOUR_TOKEN --url https://api.yourdomain.com
   ```
-- Ensure your machine has an active internet connection.
+- Ensure your machine has an active network connection.
 
 ### 3. How do I test local APIs (`localhost:3000`)?
-When creating a test on the [K6 Lab Dashboard](https://k6lab.com), simply input your local URL (e.g. `http://localhost:3000/api/users`). Because `k6lab-agent` executes `k6` directly on your machine, `localhost` resolves locally on your machine with zero networking issues.
+When creating a test on the dashboard, simply input your local URL (e.g. `http://localhost:3000/api/users`). Because `k6lab-agent` executes `k6` directly on your machine, `localhost` resolves locally on your machine with zero networking issues.
 
 ### 4. How to stop or restart the agent?
 Press `Ctrl + C` in the terminal running `k6lab-agent start`. The agent will gracefully stop any currently running tests and disconnect cleanly.
 
 ---
 
-## 📄 License & Source Code
+## 📄 License
 
-Distributed under the **MIT License**. See `LICENSE` for more information.  
-Source Code: [https://github.com/jayOnWeb/SAAS-project-k6Lab/tree/main/agent](https://github.com/jayOnWeb/SAAS-project-k6Lab/tree/main/agent)
+Distributed under the **MIT License**. See `LICENSE` for more information.
 
 ---
 
 <div align="center">
-  <sub>Built with ❤️ for developers and QA engineers by the <a href="https://k6lab.com">K6 Lab Team</a> • <a href="https://github.com/jayOnWeb/SAAS-project-k6Lab/tree/main/agent">GitHub Repository</a></sub>
+  <sub>Built with ❤️ for developers and QA engineers by the K6 Lab Team.</sub>
 </div>
-
-

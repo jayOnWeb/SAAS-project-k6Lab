@@ -14,11 +14,13 @@ const CurvedLoop = ({
     return (hasTrailing ? marqueeText.replace(/\s+$/, '') : marqueeText) + '\u00A0';
   }, [marqueeText]);
 
+  const containerRef = useRef(null);
   const measureRef = useRef(null);
   const textPathRef = useRef(null);
   const pathRef = useRef(null);
+  const inViewRef = useRef(true);
   const [spacing, setSpacing] = useState(0);
-  const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
   const uid = useId();
   const pathId = `curve-${uid}`;
   const pathD = `M-100,40 Q500,${40 + curveAmount} 1540,40`;
@@ -42,28 +44,42 @@ const CurvedLoop = ({
 
   useEffect(() => {
     if (!spacing) return;
+    const initial = -spacing;
+    offsetRef.current = initial;
     if (textPathRef.current) {
-      const initial = -spacing;
       textPathRef.current.setAttribute('startOffset', initial + 'px');
-      setOffset(initial);
     }
   }, [spacing]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      entries => {
+        inViewRef.current = entries[0]?.isIntersecting ?? true;
+      },
+      { threshold: 0 }
+    );
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!spacing || !ready) return;
     let frame = 0;
     const step = () => {
-      if (!dragRef.current && textPathRef.current) {
+      if (inViewRef.current && !document.hidden && !dragRef.current && textPathRef.current) {
         const delta = dirRef.current === 'right' ? speed : -speed;
-        const currentOffset = parseFloat(textPathRef.current.getAttribute('startOffset') || '0');
-        let newOffset = currentOffset + delta;
+        let newOffset = offsetRef.current + delta;
 
         const wrapPoint = spacing;
         if (newOffset <= -wrapPoint) newOffset += wrapPoint;
         if (newOffset > 0) newOffset -= wrapPoint;
 
+        offsetRef.current = newOffset;
         textPathRef.current.setAttribute('startOffset', newOffset + 'px');
-        setOffset(newOffset);
       }
       frame = requestAnimationFrame(step);
     };
@@ -85,15 +101,14 @@ const CurvedLoop = ({
     lastXRef.current = e.clientX;
     velRef.current = dx;
 
-    const currentOffset = parseFloat(textPathRef.current.getAttribute('startOffset') || '0');
-    let newOffset = currentOffset + dx;
+    let newOffset = offsetRef.current + dx;
 
     const wrapPoint = spacing;
     if (newOffset <= -wrapPoint) newOffset += wrapPoint;
     if (newOffset > 0) newOffset -= wrapPoint;
 
+    offsetRef.current = newOffset;
     textPathRef.current.setAttribute('startOffset', newOffset + 'px');
-    setOffset(newOffset);
   };
 
   const endDrag = () => {
@@ -106,6 +121,7 @@ const CurvedLoop = ({
 
   return (
     <div
+      ref={containerRef}
       className="curved-loop-jacket"
       style={{ visibility: ready ? 'visible' : 'hidden', cursor: cursorStyle }}
       onPointerDown={onPointerDown}
@@ -122,7 +138,7 @@ const CurvedLoop = ({
         </defs>
         {ready && (
           <text fontWeight="bold" xmlSpace="preserve" className={className}>
-            <textPath ref={textPathRef} href={`#${pathId}`} startOffset={offset + 'px'} xmlSpace="preserve">
+            <textPath ref={textPathRef} href={`#${pathId}`} startOffset={`${offsetRef.current}px`} xmlSpace="preserve">
               {totalText}
             </textPath>
           </text>
@@ -133,3 +149,4 @@ const CurvedLoop = ({
 };
 
 export default CurvedLoop;
+

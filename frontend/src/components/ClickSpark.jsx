@@ -14,7 +14,7 @@ const ClickSpark = ({
 }) => {
   const canvasRef = useRef(null);
   const sparksRef = useRef([]);
-  const startTimeRef = useRef(null);
+  const animationIdRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -65,17 +65,21 @@ const ClickSpark = ({
     [easing]
   );
 
-  useEffect(() => {
+  const startAnimationLoop = useCallback(() => {
+    if (animationIdRef.current) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-
-    let animationId;
+    if (!ctx) return;
 
     const draw = timestamp => {
-      if (!startTimeRef.current) {
-        startTimeRef.current = timestamp;
+      if (sparksRef.current.length === 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        animationIdRef.current = null;
+        return;
       }
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       sparksRef.current = sparksRef.current.filter(spark => {
@@ -105,15 +109,20 @@ const ClickSpark = ({
         return true;
       });
 
-      animationId = requestAnimationFrame(draw);
+      animationIdRef.current = requestAnimationFrame(draw);
     };
 
-    animationId = requestAnimationFrame(draw);
+    animationIdRef.current = requestAnimationFrame(draw);
+  }, [sparkColor, sparkSize, sparkRadius, duration, easeFunc, extraScale]);
 
+  useEffect(() => {
     return () => {
-      cancelAnimationFrame(animationId);
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current);
+        animationIdRef.current = null;
+      }
     };
-  }, [sparkColor, sparkSize, sparkRadius, sparkCount, duration, easeFunc, extraScale]);
+  }, []);
 
   const handleClick = e => {
     const canvas = canvasRef.current;
@@ -131,6 +140,7 @@ const ClickSpark = ({
     }));
 
     sparksRef.current.push(...newSparks);
+    startAnimationLoop();
   };
 
   return (
@@ -164,3 +174,4 @@ const ClickSpark = ({
 };
 
 export default ClickSpark;
+

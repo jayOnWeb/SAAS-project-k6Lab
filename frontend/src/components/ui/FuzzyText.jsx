@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 
 export default function FuzzyText({
   children = 'Fuzzy',
@@ -6,47 +6,62 @@ export default function FuzzyText({
   hoverIntensity = 0.5,
   enableHover = true,
   color = '#ffffff',
-  fontSize = 'clamp(2.5rem, 6vw, 4.5rem)',
+  fontSize,
   fontWeight = 900,
   fontFamily = 'Space Grotesk, sans-serif',
   className = '',
 }) {
   const canvasRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
+  const containerRef = useRef(null);
+  const isHoveredRef = useRef(false);
+  const inViewRef = useRef(true);
   const textStr = React.Children.toArray(children).join('');
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const ctx = canvas.getContext('2d', { alpha: true });
+    if (!ctx) return;
+
     let animationFrameId;
+    let particles = [];
+    let lastRenderTime = 0;
+    const targetFps = 30;
+    const frameInterval = 1000 / targetFps;
 
     const offCanvas = document.createElement('canvas');
     const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
 
-    const updateCanvasSize = () => {
-      const tempDiv = document.createElement('div');
-      tempDiv.style.fontSize = fontSize;
-      tempDiv.style.fontFamily = fontFamily;
-      tempDiv.style.fontWeight = fontWeight.toString();
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.visibility = 'hidden';
-      tempDiv.style.whiteSpace = 'nowrap';
-      tempDiv.innerText = textStr;
-      document.body.appendChild(tempDiv);
+    const updateCanvasSizeAndParticles = () => {
+      if (!offCtx || !canvas) return;
 
-      const computedStyle = window.getComputedStyle(tempDiv);
-      const pxSize = parseFloat(computedStyle.fontSize) || 64;
-      document.body.removeChild(tempDiv);
+      const parentEl = containerRef.current?.parentElement || canvas.parentElement;
+      const computed = parentEl ? window.getComputedStyle(parentEl) : null;
+      
+      let pxSize = 64;
+      if (fontSize) {
+        const tempDiv = document.createElement('div');
+        tempDiv.style.fontSize = fontSize;
+        tempDiv.style.visibility = 'hidden';
+        tempDiv.style.position = 'absolute';
+        document.body.appendChild(tempDiv);
+        pxSize = parseFloat(window.getComputedStyle(tempDiv).fontSize) || 64;
+        document.body.removeChild(tempDiv);
+      } else if (computed) {
+        pxSize = parseFloat(computed.fontSize) || 64;
+      }
 
-      const fontStr = `${fontWeight} ${pxSize}px ${fontFamily}`;
-      ctx.font = fontStr;
+      const compFontWeight = computed ? computed.fontWeight : fontWeight.toString();
+      const compFontFamily = computed ? computed.fontFamily : fontFamily;
+      const fontStr = `${compFontWeight} ${pxSize}px ${compFontFamily}`;
 
-      const textMetrics = ctx.measureText(textStr);
-      // Give ample horizontal and vertical padding to avoid clipping edge characters like 't'
-      const width = Math.ceil(textMetrics.width) + 90;
-      const height = Math.ceil(pxSize * 1.4) + 30;
+      offCtx.font = fontStr;
+
+      const textMetrics = offCtx.measureText(textStr);
+      const padX = 5; // Compact padding for crisp subtle jitter
+      const width = Math.ceil(textMetrics.width) + padX * 2;
+      const height = Math.ceil(pxSize * 1.16);
 
       canvas.width = width;
       canvas.height = height;
@@ -54,66 +69,98 @@ export default function FuzzyText({
       offCanvas.width = width;
       offCanvas.height = height;
       offCtx.font = fontStr;
-    };
 
-    updateCanvasSize();
-    window.addEventListener('resize', updateCanvasSize);
-
-    let time = 0;
-
-    const render = () => {
-      time += 0.05;
-      const currentIntensity = isHovered && enableHover ? hoverIntensity : baseIntensity;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      offCtx.clearRect(0, 0, offCanvas.width, offCanvas.height);
-
-      // Draw text safely with padding to prevent edge cropping
+      // Draw text to offscreen canvas precisely positioned
+      offCtx.clearRect(0, 0, width, height);
       offCtx.fillStyle = color;
       offCtx.textBaseline = 'middle';
-      offCtx.fillText(textStr, 25, offCanvas.height / 2);
+      offCtx.fillText(textStr, padX, height / 2);
 
-      const imgData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+      // Pre-extract active pixel coordinates ONCE
+      const imgData = offCtx.getImageData(0, 0, width, height);
       const pixels = imgData.data;
+      const newParticles = [];
 
-      const maxJitter = currentIntensity * 10;
-
-      ctx.fillStyle = color;
-      ctx.textBaseline = 'middle';
-
-      for (let y = 0; y < offCanvas.height; y += 2) {
-        for (let x = 0; x < offCanvas.width; x += 2) {
-          const index = (y * offCanvas.width + x) * 4;
+      const step = 2;
+      for (let y = 0; y < height; y += step) {
+        for (let x = 0; x < width; x += step) {
+          const index = (y * width + x) * 4;
           const alpha = pixels[index + 3];
 
           if (alpha > 30) {
-            const jitterX = (Math.random() - 0.5) * maxJitter;
-            const jitterY = (Math.random() - 0.5) * maxJitter;
-            
-            ctx.fillStyle = `rgba(${pixels[index]}, ${pixels[index + 1]}, ${pixels[index + 2]}, ${alpha / 255})`;
-            ctx.fillRect(x + jitterX, y + jitterY, 2, 2);
+            newParticles.push({
+              x,
+              y,
+              alpha: alpha / 255
+            });
           }
         }
       }
-
-      animationFrameId = requestAnimationFrame(render);
+      particles = newParticles;
     };
 
-    render();
+    updateCanvasSizeAndParticles();
+    window.addEventListener('resize', updateCanvasSizeAndParticles);
+
+    // Pause animation when off-screen
+    const observer = new IntersectionObserver(
+      (entries) => {
+        inViewRef.current = entries[0]?.isIntersecting ?? true;
+      },
+      { threshold: 0 }
+    );
+    observer.observe(canvas);
+
+    const render = (currentTime) => {
+      animationFrameId = requestAnimationFrame(render);
+
+      if (!inViewRef.current || document.hidden) return;
+
+      const elapsed = currentTime - lastRenderTime;
+      if (elapsed < frameInterval) return;
+      lastRenderTime = currentTime - (elapsed % frameInterval);
+
+      const currentIntensity = isHoveredRef.current && enableHover ? hoverIntensity : baseIntensity;
+      const maxJitter = currentIntensity * 6.5;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = color;
+
+      const pLen = particles.length;
+      for (let i = 0; i < pLen; i++) {
+        const p = particles[i];
+        const jitterX = (Math.random() - 0.5) * maxJitter;
+        const jitterY = (Math.random() - 0.5) * maxJitter;
+        ctx.globalAlpha = p.alpha;
+        ctx.fillRect(p.x + jitterX, p.y + jitterY, 2, 2);
+      }
+      ctx.globalAlpha = 1.0;
+    };
+
+    animationFrameId = requestAnimationFrame(render);
 
     return () => {
       cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', updateCanvasSize);
+      window.removeEventListener('resize', updateCanvasSizeAndParticles);
+      observer.disconnect();
     };
-  }, [textStr, baseIntensity, hoverIntensity, enableHover, isHovered, color, fontSize, fontWeight, fontFamily]);
+  }, [textStr, baseIntensity, hoverIntensity, enableHover, color, fontSize, fontWeight, fontFamily]);
 
   return (
     <span
-      className={`inline-block relative cursor-pointer select-none align-middle ${className}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      ref={containerRef}
+      className={`inline-flex items-center justify-center relative cursor-pointer select-none align-middle ${className}`}
+      style={{ lineHeight: 1 }}
+      onMouseEnter={() => {
+        isHoveredRef.current = true;
+      }}
+      onMouseLeave={() => {
+        isHoveredRef.current = false;
+      }}
     >
-      <canvas ref={canvasRef} className="inline-block align-middle" />
+      <canvas ref={canvasRef} className="block align-middle" />
     </span>
   );
 }
+
+

@@ -242,7 +242,7 @@ export const LaserFlow = ({
   className,
   style,
   wispDensity = 1,
-  dpr,
+  dpr = 1,
   mouseSmoothTime = 0.0,
   mouseTiltStrength = 0.01,
   horizontalBeamOffset = 0.1,
@@ -301,7 +301,7 @@ export const LaserFlow = ({
     });
     rendererRef.current = renderer;
 
-    baseDprRef.current = Math.min(dpr ?? (window.devicePixelRatio || 1), 2);
+    baseDprRef.current = Math.min(dpr ?? 1, 1.25);
     currentDprRef.current = baseDprRef.current;
 
     renderer.setPixelRatio(currentDprRef.current);

@@ -35,6 +35,7 @@ export default function HomePage() {
         <div style={{ width: '1080px', height: '1080px', position: 'relative' }}>
           <LaserFlow
             color="#F43F5E"
+            dpr={1}
             wispDensity={1}
             flowSpeed={0.35}
             verticalSizing={2}
@@ -71,36 +72,39 @@ export default function HomePage() {
 
       <Navbar />
 
-      <main className="flex-1 pt-24 pb-20 relative z-10">
+      <main className="flex-1 pt-20 pb-20 relative z-10">
         {/* HERO SECTION */}
-        <section className="max-w-7xl mx-auto px-6 pt-12 pb-20 text-center relative z-10">
+        <section className="max-w-7xl mx-auto px-6 pt-20 sm:pt-28 md:pt-36 pb-24 text-center relative z-10">
           {/* Headline with FuzzyText & GlitchText */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white mb-6 max-w-5xl mx-auto leading-[1.1] font-['Space_Grotesk'] flex flex-wrap items-center justify-center gap-x-3 gap-y-1"
+            className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white mb-6 max-w-5xl mx-auto leading-[1.15] font-['Space_Grotesk'] text-center"
           >
-            <FuzzyText
-              baseIntensity={0.2}
-              hoverIntensity={0.5}
-              enableHover
-              color="#ffffff"
-            >
-              Stress Test
-            </FuzzyText>
-            <span>Your APIs.</span>
-            <br className="hidden sm:inline" />
-            <span className="text-gradient-red flex items-center justify-center gap-2">
-              <span>Understand Their</span>
-              <GlitchText
-                speed={1}
-                enableShadows
-                enableOnHover={false}
-                className="text-gradient-red inline-block"
+            <span className="inline-flex items-center justify-center flex-wrap gap-x-3 sm:gap-x-4">
+              <FuzzyText
+                baseIntensity={0.20}
+                hoverIntensity={0.45}
+                enableHover
+                color="#ffffff"
               >
-                Limits.
-              </GlitchText>
+                Stress Test
+              </FuzzyText>
+              <span>Your APIs.</span>
+            </span>
+            <span className="block mt-2 sm:mt-3 text-gradient-red">
+              <span className="inline-flex items-center justify-center flex-wrap gap-x-2 sm:gap-x-3">
+                <span>Understand Their</span>
+                <GlitchText
+                  speed={1}
+                  enableShadows
+                  enableOnHover={false}
+                  className="text-gradient-red inline-block"
+                >
+                  Limits.
+                </GlitchText>
+              </span>
             </span>
           </motion.h1>
 

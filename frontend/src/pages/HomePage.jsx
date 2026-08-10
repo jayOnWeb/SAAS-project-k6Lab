@@ -74,7 +74,7 @@ export default function HomePage() {
 
       <main className="flex-1 pt-20 pb-20 relative z-10">
         {/* HERO SECTION */}
-        <section className="max-w-7xl mx-auto px-6 pt-20 sm:pt-28 md:pt-36 pb-24 text-center relative z-10">
+        <section className="max-w-7xl mx-auto px-6 pt-8 sm:pt-12 md:pt-16 pb-20 text-center relative z-10">
           {/* Headline with FuzzyText & GlitchText */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}

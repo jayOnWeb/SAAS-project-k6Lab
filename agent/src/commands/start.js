@@ -23,6 +23,7 @@ import {
 import { createK6Script } from "../services/scriptGenerator.js";
 import { runK6, stopCurrentK6Process } from "../services/runner.js";
 import { sleep } from "../utils/sleep.js";
+import { VERSION } from "../utils/version.js";
 import {
   drawBanner,
   drawCard,
@@ -50,7 +51,8 @@ process.on("SIGINT", async () => {
 });
 
 export async function start() {
-  drawBanner("1.0.3", "ONLINE");
+  drawBanner(VERSION, "ONLINE");
+
 
   try {
     logInfo("Checking k6 engine installation...");

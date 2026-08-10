@@ -1,10 +1,11 @@
 import { getConfig } from "../services/configStore.js";
+import { VERSION } from "../utils/version.js";
 import { drawBanner, drawCard, logWarn, colors, symbols } from "../utils/ui.js";
 
 export async function status() {
   try {
     const config = await getConfig();
-    drawBanner("1.0.3", "ONLINE");
+    drawBanner(VERSION, "ONLINE");
     
     console.log("");
     drawCard(
@@ -21,11 +22,12 @@ export async function status() {
     );
     console.log("");
   } catch (err) {
-    drawBanner("1.0.3", "OFFLINE");
+    drawBanner(VERSION, "OFFLINE");
     console.log("");
     logWarn("K6 Lab Agent Status: DISCONNECTED / NOT LOGGED IN");
     console.log(`${colors.gray}Run: ${colors.brightYellow}k6lab-agent login <token>${colors.gray} to connect your local environment.${colors.reset}`);
     console.log("");
   }
 }
+
 

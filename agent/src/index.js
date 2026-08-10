@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
+import { VERSION } from "./utils/version.js";
 import { login } from "./commands/login.js";
 import { start } from "./commands/start.js";
 import { status } from "./commands/status.js";
@@ -10,28 +11,30 @@ const program = new Command();
 
 program
   .name("k6lab-agent")
-  .description("Local agent for K6 Lab")
-  .version("1.0.0");
+  .description("Official CLI local runner for K6 Lab load testing")
+  .version(VERSION);
 
 program
   .command("login")
   .description("Login with your K6 Lab agent token")
-  .argument("<token>", "Agent token from K6 Lab dashboard")
-  .action(login);
+  .argument("<token>", "Agent token from your K6 Lab dashboard")
+  .option("-u, --url <url>", "Custom backend API server URL (default: http://localhost:8000)")
+  .action((token, options) => login(token, options));
 
 program
   .command("start")
-  .description("Start agent and wait for dashboard jobs")
+  .description("Start agent runner daemon and listen for dashboard test jobs")
   .action(start);
 
 program
   .command("status")
-  .description("Show local agent login status")
+  .description("Show local agent connection and configuration status")
   .action(status);
 
 program
   .command("logout")
-  .description("Remove local agent token")
+  .description("Disconnect agent and remove local credentials")
   .action(logout);
 
 program.parse();
+

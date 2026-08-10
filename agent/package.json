@@ -1,11 +1,42 @@
 {
   "name": "k6lab-agent",
-  "version": "1.0.3",
-  "description": "Local agent for K6 Lab load testing",
+  "version": "1.0.5",
+  "description": "High-performance local load testing agent for K6 Lab. Execute native k6 tests locally and stream real-time telemetry to the dashboard.",
   "type": "module",
+  "main": "src/index.js",
   "bin": {
     "k6lab-agent": "src/index.js"
   },
+  "keywords": [
+    "k6",
+    "k6lab",
+    "load-testing",
+    "stress-testing",
+    "performance-testing",
+    "agent",
+    "cli",
+    "benchmarking",
+    "telemetry"
+  ],
+  "author": "K6 Lab Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jayOnWeb/SAAS-project-k6Lab.git",
+    "directory": "agent"
+  },
+  "homepage": "https://github.com/jayOnWeb/SAAS-project-k6Lab/tree/main/agent#readme",
+  "bugs": {
+    "url": "https://github.com/jayOnWeb/SAAS-project-k6Lab/issues"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "package.json"
+  ],
   "dependencies": {
     "axios": "^1.6.0",
     "commander": "^11.1.0"

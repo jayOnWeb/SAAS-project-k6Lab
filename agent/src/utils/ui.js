@@ -1,4 +1,5 @@
 // Terminal UI and formatting utility for K6 Lab Agent
+import { VERSION } from "./version.js";
 
 const ESC = "\x1b[";
 export const colors = {
@@ -81,7 +82,7 @@ export function badge(text, type = "info") {
   }
 }
 
-export function drawBanner(version = "1.0.3", status = "ONLINE") {
+export function drawBanner(version = VERSION, status = "ONLINE") {
   const line = `${colors.cyan}${symbols.boxH.repeat(60)}${colors.reset}`;
   const statusBadge = status === "ONLINE" ? badge("🟢 ONLINE", "success") : badge("🔴 OFFLINE", "error");
   

@@ -1,11 +1,13 @@
 import axios from "axios";
 import { saveConfig } from "../services/configStore.js";
+import { VERSION } from "../utils/version.js";
 import { drawBanner, drawCard, logSuccess, logError, colors, symbols } from "../utils/ui.js";
 
-export async function login(token) {
-  const apiUrl = process.env.K6LAB_API_URL || "http://localhost:8000";
+export async function login(token, options = {}) {
+  const rawUrl = options.url || process.env.K6LAB_API_URL || "http://localhost:8000";
+  const apiUrl = rawUrl.trim().replace(/\/+$/, "");
 
-  drawBanner("1.0.3", "CONNECTING");
+  drawBanner(VERSION, "CONNECTING");
 
   try {
     const res = await axios.post(
@@ -48,9 +50,12 @@ export async function login(token) {
     logError("Reason: Invalid agent token or backend server is unreachable.");
     if (err.response?.data?.error) {
       console.log(`${colors.gray}Details: ${err.response.data.error}${colors.reset}`);
+    } else if (err.code === "ECONNREFUSED" || err.code === "ENOTFOUND") {
+      console.log(`${colors.gray}Details: Could not connect to API server at ${apiUrl}${colors.reset}`);
     }
     console.log("");
     process.exit(1);
   }
 }
+
 

@@ -1,6 +1,6 @@
 {
   "name": "k6lab-agent",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "High-performance local load testing agent for K6 Lab. Execute native k6 tests locally and stream real-time telemetry to the dashboard.",
   "type": "module",
   "main": "src/index.js",

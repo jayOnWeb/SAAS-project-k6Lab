@@ -166,7 +166,7 @@ k6lab-agent start
 You will see the active cockpit banner:
 ```txt
 ┌────────────────────────────────────────────────────────────┐
-│  ⚡ K6 LAB AGENT v1.0.5                        🟢 ONLINE    │
+│  ⚡ K6 LAB AGENT v1.0.6                        🟢 ONLINE    │
 └────────────────────────────────────────────────────────────┘
 ┌──────────────────────────────────────────────────────────────┐
 │  📡 READY & WAITING FOR DASHBOARD JOBS                       │

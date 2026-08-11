@@ -2,11 +2,7 @@ const crypto = require("crypto");
 const Agent = require("../models/Agent");
 const TestJob = require("../models/TestJob");
 const { getHealthStatus } = require("../utils/healthChecker");
-
-// Hash token helper
-const hashToken = (token) => {
-  return crypto.createHash("sha256").update(token).digest("hex");
-};
+const { hashToken } = require("../middleware/agentAuthMiddleware");
 
 // 🔹 Frontend API: Get current active agent state
 const getMyAgent = async (req, res) => {
@@ -42,16 +38,16 @@ const getMyAgent = async (req, res) => {
       setupRequired: !isOnline,
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("getMyAgent error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to fetch agent state." });
   }
 };
-
 
 // 🔹 Frontend API: Register agent and emit one-time raw token
 const registerAgent = async (req, res) => {
   try {
     const { name } = req.body;
-    const agentName = name ? name.trim() : "My Laptop";
+    const agentName = name ? String(name).trim().slice(0, 50) : "My Laptop";
 
     // Revoke any previous non-disabled agents to maintain "one active agent per user" limit
     await Agent.updateMany(
@@ -88,7 +84,8 @@ const registerAgent = async (req, res) => {
       ],
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("registerAgent error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to register agent." });
   }
 };
 
@@ -106,83 +103,47 @@ const revokeAgent = async (req, res) => {
 
     res.json({ success: true, message: "Agent revoked successfully" });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("revokeAgent error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to revoke agent." });
   }
 };
 
-// 🔹 CLI API: Authenticate and verify token
+// 🔹 CLI API: Authenticate and verify token (Protected by protectAgent)
 const verifyToken = async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ success: false, error: "No token provided" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const hashed = hashToken(token);
-
-    const agent = await Agent.findOne({ tokenHash: hashed, status: { $ne: "disabled" } });
-    if (!agent) {
-      return res.status(401).json({ success: false, error: "Invalid or revoked token" });
-    }
-
     res.json({
       success: true,
       agent: {
-        id: agent._id,
-        name: agent.name,
+        id: req.agent._id,
+        name: req.agent.name,
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("verifyToken error:", err.message);
+    res.status(500).json({ success: false, error: "Token verification failed." });
   }
 };
 
-// 🔹 CLI API: Hearthbeat ping
+// 🔹 CLI API: Heartbeat ping (Protected by protectAgent)
 const sendHeartbeat = async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ success: false, error: "No token provided" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const hashed = hashToken(token);
-
-    const agent = await Agent.findOne({ tokenHash: hashed, status: { $ne: "disabled" } });
-    if (!agent) {
-      return res.status(401).json({ success: false, error: "Invalid or revoked token" });
-    }
-
-    agent.status = "online";
-    agent.lastSeenAt = new Date();
-    await agent.save();
+    req.agent.status = "online";
+    req.agent.lastSeenAt = new Date();
+    await req.agent.save();
 
     res.json({ success: true, message: "Heartbeat received" });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("sendHeartbeat error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to process heartbeat." });
   }
 };
 
-// 🔹 CLI API: Poll next job atomically
+// 🔹 CLI API: Poll next job atomically (Protected by protectAgent)
 const getNextJob = async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ success: false, error: "No token provided" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const hashed = hashToken(token);
-
-    const agent = await Agent.findOne({ tokenHash: hashed, status: { $ne: "disabled" } });
-    if (!agent) {
-      return res.status(401).json({ success: false, error: "Invalid or revoked token" });
-    }
-
-    // Atomically find next queued job and transition status to running
+    // Atomically find next queued job assigned to this agent and transition status to running
     const job = await TestJob.findOneAndUpdate(
-      { agentId: agent._id, status: "queued" },
+      { agentId: req.agent._id, status: "queued" },
       { $set: { status: "running", startedAt: new Date() } },
       { sort: { createdAt: 1 }, new: true }
     );
@@ -200,31 +161,26 @@ const getNextJob = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("getNextJob error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to poll next job." });
   }
 };
 
-// 🔹 CLI API: Upload test run raw logs
+// 🔹 CLI API: Upload test run raw logs (Protected by protectAgent & validateAgentJobOwnership)
 const uploadJobLogs = async (req, res) => {
   try {
     const { logs } = req.body;
-    const job = await TestJob.findByIdAndUpdate(
-      req.params.jobId,
-      { $set: { logs: logs || "" } },
-      { new: true }
-    );
-
-    if (!job) {
-      return res.status(404).json({ success: false, error: "Job not found" });
-    }
+    req.job.logs = logs || "";
+    await req.job.save();
 
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("uploadJobLogs error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to upload job logs." });
   }
 };
 
-// 🔹 CLI API: Upload k6 final run results summary metrics
+// 🔹 CLI API: Upload k6 final run results summary metrics (Protected by protectAgent & validateAgentJobOwnership)
 const uploadJobResult = async (req, res) => {
   try {
     const { summary, logs } = req.body;
@@ -257,10 +213,7 @@ const uploadJobResult = async (req, res) => {
       failureRate: failedRequestRate * 100,
     });
 
-    const job = await TestJob.findById(req.params.jobId);
-    if (!job) {
-      return res.status(404).json({ success: false, error: "Job not found" });
-    }
+    const job = req.job;
 
     // Update job metrics
     job.status = "completed";
@@ -285,92 +238,68 @@ const uploadJobResult = async (req, res) => {
     await job.save();
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("uploadJobResult error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to upload test results." });
   }
 };
 
-// 🔹 CLI API: Mark job failed
+// 🔹 CLI API: Mark job failed (Protected by protectAgent & validateAgentJobOwnership)
 const failJob = async (req, res) => {
   try {
     const { error } = req.body;
-    const job = await TestJob.findByIdAndUpdate(
-      req.params.jobId,
-      {
-        $set: {
-          status: "failed",
-          error: error || "Unknown agent error",
-          completedAt: new Date(),
-        },
-      },
-      { new: true }
-    );
+    const job = req.job;
 
-    if (!job) {
-      return res.status(404).json({ success: false, error: "Job not found" });
-    }
+    job.status = "failed";
+    job.error = error ? String(error).slice(0, 1000) : "Unknown agent execution error";
+    job.completedAt = new Date();
+    await job.save();
 
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("failJob error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to mark job as failed." });
   }
 };
 
-// 🔹 CLI API: Mark job cancelled
+// 🔹 CLI API: Mark job cancelled (Protected by protectAgent & validateAgentJobOwnership)
 const cancelJob = async (req, res) => {
   try {
     const { message } = req.body;
-    const job = await TestJob.findByIdAndUpdate(
-      req.params.jobId,
-      {
-        $set: {
-          status: "cancelled",
-          error: message || "Cancelled by user",
-          cancelledAt: new Date(),
-        },
-      },
-      { new: true }
-    );
+    const job = req.job;
 
-    if (!job) {
-      return res.status(404).json({ success: false, error: "Job not found" });
-    }
+    job.status = "cancelled";
+    job.error = message ? String(message).slice(0, 500) : "Cancelled by agent runner";
+    job.cancelledAt = new Date();
+    await job.save();
 
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("cancelJob error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to cancel job." });
   }
 };
 
-// 🔹 CLI API: Get job status details
+// 🔹 CLI API: Get job status details (Protected by protectAgent & validateAgentJobOwnership)
 const getJobStatus = async (req, res) => {
   try {
-    const job = await TestJob.findById(req.params.jobId).select("status");
-    if (!job) {
-      return res.status(404).json({ success: false, error: "Job not found" });
-    }
-    res.json({ success: true, job: { id: job._id, status: job.status } });
+    res.json({ success: true, job: { id: req.job._id, status: req.job.status } });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("getJobStatus error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to fetch job status." });
   }
 };
 
-// 🔹 CLI API: Agent Logout notification
+// 🔹 CLI API: Agent Logout notification (Protected by protectAgent)
 const agentLogout = async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.split(" ")[1];
-      const hashed = hashToken(token);
-      const agent = await Agent.findOne({ tokenHash: hashed });
-      if (agent) {
-        agent.status = "offline";
-        agent.lastSeenAt = new Date(0);
-        await agent.save();
-      }
-    }
+    req.agent.status = "offline";
+    req.agent.lastSeenAt = new Date(0);
+    await req.agent.save();
+
     res.json({ success: true, message: "Agent logged out" });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("agentLogout error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to process logout." });
   }
 };
 
@@ -388,4 +317,3 @@ module.exports = {
   cancelJob,
   getJobStatus,
 };
-

@@ -3,9 +3,13 @@ import os from "os";
 import path from "path";
 
 export async function createK6Script(job) {
-  const jobDir = path.join(os.homedir(), ".k6lab", "jobs", job.id);
+  // Sanitize job ID to prevent directory traversal
+  const rawId = String(job.id || "job").replace(/[^a-zA-Z0-9_-]/g, "");
+  const safeJobId = rawId.length > 0 ? rawId : "job_" + Date.now();
 
-  await fs.mkdir(jobDir, { recursive: true });
+  const jobDir = path.join(os.homedir(), ".k6lab", "jobs", safeJobId);
+
+  await fs.mkdir(jobDir, { recursive: true, mode: 0o700 });
 
   const scriptPath = path.join(jobDir, "script.js");
   const summaryPath = path.join(jobDir, "summary.json");
@@ -24,11 +28,11 @@ export async function createK6Script(job) {
       null,
       2
     ),
-    "utf8"
+    { encoding: "utf8", mode: 0o600 }
   );
 
-
-  const escapedSummaryPath = summaryPath.replaceAll("\\", "\\\\");
+  // Safely JSON-encode the summaryPath string so it is embedded cleanly without JS injection
+  const jsonSummaryPath = JSON.stringify(summaryPath);
 
   const script = `
 import http from "k6/http";
@@ -69,12 +73,12 @@ export default function () {
 
 export function handleSummary(data) {
   return {
-    "${escapedSummaryPath}": JSON.stringify(data)
+    [${jsonSummaryPath}]: JSON.stringify(data)
   };
 }
 `.trim();
 
-  await fs.writeFile(scriptPath, script, "utf8");
+  await fs.writeFile(scriptPath, script, { encoding: "utf8", mode: 0o600 });
 
   return {
     jobDir,

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/authMiddleware");
+const { protectAgent, validateAgentJobOwnership } = require("../middleware/agentAuthMiddleware");
 const {
   getMyAgent,
   registerAgent,
@@ -21,16 +22,18 @@ router.get("/agents/me", protect, getMyAgent);
 router.post("/agents/register", protect, registerAgent);
 router.delete("/agents/:agentId", protect, revokeAgent);
 
-// 🔹 CLI Agent API Routes (authenticated by Bearer agentToken inside controller)
-router.post("/agent/verify-token", verifyToken);
-router.post("/agent/heartbeat", sendHeartbeat);
-router.post("/agent/logout", agentLogout);
+// 🔹 CLI Agent API Routes (authenticated by SHA-256 Bearer agentToken)
+router.post("/agent/verify-token", protectAgent, verifyToken);
+router.post("/agent/heartbeat", protectAgent, sendHeartbeat);
+router.post("/agent/logout", protectAgent, agentLogout);
 
-router.get("/agent/jobs/next", getNextJob);
-router.post("/agent/jobs/:jobId/logs", uploadJobLogs);
-router.post("/agent/jobs/:jobId/result", uploadJobResult);
-router.post("/agent/jobs/:jobId/fail", failJob);
-router.post("/agent/jobs/:jobId/cancelled", cancelJob);
-router.get("/agent/jobs/:jobId/status", getJobStatus);
+// 🔹 CLI Agent Job Execution & Telemetry Routes (Protected & Ownership-Verified)
+router.get("/agent/jobs/next", protectAgent, getNextJob);
+router.post("/agent/jobs/:jobId/logs", protectAgent, validateAgentJobOwnership, uploadJobLogs);
+router.post("/agent/jobs/:jobId/result", protectAgent, validateAgentJobOwnership, uploadJobResult);
+router.post("/agent/jobs/:jobId/fail", protectAgent, validateAgentJobOwnership, failJob);
+router.post("/agent/jobs/:jobId/cancelled", protectAgent, validateAgentJobOwnership, cancelJob);
+router.get("/agent/jobs/:jobId/status", protectAgent, validateAgentJobOwnership, getJobStatus);
 
 module.exports = router;
+

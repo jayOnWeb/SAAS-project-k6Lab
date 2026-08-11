@@ -3,8 +3,12 @@ const jwt = require("jsonwebtoken");
 
 // Generate JWT Helper
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || "k6lab_secret_key_2026", {
-    expiresIn: "30d",
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET environment variable is missing.");
+  }
+  return jwt.sign({ id }, secret, {
+    expiresIn: "7d", // Secure 7-day token expiration
   });
 };
 
@@ -16,23 +20,31 @@ const signup = async (req, res) => {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ error: "Please fill in all fields" });
+      return res.status(400).json({ error: "Please fill in all fields (name, email, password)." });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
+    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanName = String(name).trim().slice(0, 100);
+
+    // Password policy: minimum 8 characters, letters and numbers required
+    if (password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters long." });
+    }
+
+    if (!/(?=.*[a-zA-Z])(?=.*[0-9])/.test(password)) {
+      return res.status(400).json({ error: "Password must contain both letters and numbers for security." });
     }
 
     // Check if user exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: cleanEmail });
     if (userExists) {
-      return res.status(400).json({ error: "User already exists with this email" });
+      return res.status(400).json({ error: "An account already exists with this email address." });
     }
 
     // Create user
     const user = await User.create({
-      name,
-      email,
+      name: cleanName,
+      email: cleanEmail,
       password,
     });
 
@@ -47,11 +59,11 @@ const signup = async (req, res) => {
         },
       });
     } else {
-      res.status(400).json({ error: "Invalid user data" });
+      res.status(400).json({ error: "Invalid user registration data." });
     }
   } catch (err) {
-    console.error("Signup error:", err);
-    res.status(500).json({ error: "Server error", details: err.message });
+    console.error("Signup error:", err.message);
+    res.status(500).json({ error: "Registration failed. Please try again later." });
   }
 };
 
@@ -63,11 +75,13 @@ const login = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: "Please provide email and password" });
+      return res.status(400).json({ error: "Please provide both email and password." });
     }
 
+    const cleanEmail = String(email).trim().toLowerCase();
+
     // Get user and explicitly select password field
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email: cleanEmail }).select("+password");
 
     if (user && (await user.matchPassword(password))) {
       res.json({
@@ -80,11 +94,12 @@ const login = async (req, res) => {
         },
       });
     } else {
-      res.status(401).json({ error: "Invalid email or password" });
+      // Generic auth failure message to prevent user enumeration
+      res.status(401).json({ error: "Invalid email or password." });
     }
   } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ error: "Server error", details: err.message });
+    console.error("Login error:", err.message);
+    res.status(500).json({ error: "Authentication service unavailable. Please try again." });
   }
 };
 
@@ -96,7 +111,8 @@ const getMe = async (req, res) => {
     // req.user has already been attached by protect middleware
     res.json(req.user);
   } catch (err) {
-    res.status(500).json({ error: "Server error", details: err.message });
+    console.error("getMe error:", err.message);
+    res.status(500).json({ error: "Failed to retrieve user profile." });
   }
 };
 
@@ -107,12 +123,16 @@ const deleteAccount = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // Delete user test jobs, paired agents, and user profile
+    // Delete user test jobs, paired agents, projects, and folders
     const TestJob = require("../models/TestJob");
     const Agent = require("../models/Agent");
+    const Project = require("../models/Project");
+    const Folder = require("../models/Folder");
 
     await TestJob.deleteMany({ userId });
     await Agent.deleteMany({ userId });
+    await Project.deleteMany({ userId });
+    await Folder.deleteMany({ userId });
     await User.findByIdAndDelete(userId);
 
     res.json({
@@ -120,8 +140,8 @@ const deleteAccount = async (req, res) => {
       message: "Account and associated workspace data deleted successfully",
     });
   } catch (err) {
-    console.error("Delete account error:", err);
-    res.status(500).json({ error: "Failed to delete account", details: err.message });
+    console.error("Delete account error:", err.message);
+    res.status(500).json({ error: "Failed to delete account. Please try again." });
   }
 };
 

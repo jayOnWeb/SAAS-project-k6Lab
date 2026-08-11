@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/authMiddleware");
+const { testRunRateLimiter } = require("../middleware/rateLimiter");
 const {
   runTest,
   getTestResults,
@@ -11,11 +12,11 @@ const {
   askAIChat,
 } = require("../controllers/testController");
 
-// Secure all test operations behind JWT Auth
+// Secure all test operations behind JWT Auth & Rate Limiting
 
-// 🔹 Queuing / Execution routes
-router.post("/tests", protect, runTest);
-router.post("/run-test", protect, runTest); // legacy support
+// 🔹 Queuing / Execution routes (Rate Limited)
+router.post("/tests", protect, testRunRateLimiter, runTest);
+router.post("/run-test", protect, testRunRateLimiter, runTest); // legacy support
 
 // 🔹 List history routes
 router.get("/tests", protect, getTestResults);

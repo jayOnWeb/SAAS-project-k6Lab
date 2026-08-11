@@ -15,8 +15,10 @@ async function pathExists(filePath) {
 }
 
 export async function saveConfig(config) {
-  await fs.mkdir(configDir, { recursive: true });
-  await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf8");
+  // Create ~/.k6lab directory with restrictive permissions (0700: owner rwx only)
+  await fs.mkdir(configDir, { recursive: true, mode: 0o700 });
+  // Write config.json with restrictive permissions (0600: owner rw only)
+  await fs.writeFile(configPath, JSON.stringify(config, null, 2), { encoding: "utf8", mode: 0o600 });
 }
 
 export async function getConfig() {
@@ -37,4 +39,3 @@ export async function clearConfig() {
 export function getK6LabDir() {
   return configDir;
 }
-

@@ -58,7 +58,7 @@ export async function start() {
     logInfo("Checking k6 engine installation...");
     const k6Version = await checkK6Installed();
 
-    let config = { agentName: "Local Agent", apiUrl: "http://localhost:8000" };
+    let config = { agentName: "Local Agent", apiUrl: "https://k6lab.duckdns.org" };
     try {
       config = await getConfig();
     } catch (e) {}

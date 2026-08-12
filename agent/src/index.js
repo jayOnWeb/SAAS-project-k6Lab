@@ -18,7 +18,7 @@ program
   .command("login")
   .description("Login with your K6 Lab agent token")
   .argument("<token>", "Agent token from your K6 Lab dashboard")
-  .option("-u, --url <url>", "Custom backend API server URL (default: http://localhost:8000)")
+  .option("-u, --url <url>", "Custom backend API server URL (default: https://k6lab.duckdns.org)")
   .action((token, options) => login(token, options));
 
 program

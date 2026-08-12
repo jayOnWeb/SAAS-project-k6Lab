@@ -4,7 +4,7 @@ import { VERSION } from "../utils/version.js";
 import { drawBanner, drawCard, logSuccess, logError, colors, symbols } from "../utils/ui.js";
 
 export async function login(token, options = {}) {
-  const rawUrl = options.url || process.env.K6LAB_API_URL || "http://localhost:8000";
+  const rawUrl = options.url || process.env.K6LAB_API_URL || "https://k6lab.duckdns.org";
   const apiUrl = rawUrl.trim().replace(/\/+$/, "");
 
   drawBanner(VERSION, "CONNECTING");

@@ -102,6 +102,13 @@ export default function FuzzyText({
     updateCanvasSizeAndParticles();
     window.addEventListener('resize', updateCanvasSizeAndParticles);
 
+    // Re-draw once custom web fonts (Space Grotesk) have finished loading
+    if (document.fonts) {
+      document.fonts.ready.then(() => {
+        updateCanvasSizeAndParticles();
+      });
+    }
+
     // Pause animation when off-screen
     const observer = new IntersectionObserver(
       (entries) => {

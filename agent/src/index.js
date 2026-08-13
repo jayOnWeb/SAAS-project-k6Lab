@@ -11,13 +11,13 @@ const program = new Command();
 
 program
   .name("k6lab-agent")
-  .description("Official CLI local runner for K6 Lab load testing")
+  .description("Official CLI local runner for K6 Lab load testing (Web Dashboard: https://k6lab.duckdns.org)")
   .version(VERSION);
 
 program
   .command("login")
-  .description("Login with your K6 Lab agent token")
-  .argument("<token>", "Agent token from your K6 Lab dashboard")
+  .description("Login with your K6 Lab agent token (get token at https://k6lab.duckdns.org)")
+  .argument("<token>", "Agent token from your K6 Lab dashboard (https://k6lab.duckdns.org)")
   .option("-u, --url <url>", "Custom backend API server URL (default: https://k6lab.duckdns.org)")
   .action((token, options) => login(token, options));
 

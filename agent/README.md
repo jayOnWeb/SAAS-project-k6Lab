@@ -4,10 +4,14 @@
 
 **High-Performance Local Load Testing Runner for the K6 Lab Platform**
 
+[![Web App](https://img.shields.io/badge/Web_App-k6lab.duckdns.org-rose?style=flat-square&color=F43F5E)](https://k6lab.duckdns.org/)
 [![npm version](https://img.shields.io/npm/v/k6lab-agent.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/k6lab-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![k6 Compatible](https://img.shields.io/badge/k6-compatible-7d64ff.svg?style=flat-square)](https://k6.io)
+
+> 🌐 **Live Web Application**: [**https://k6lab.duckdns.org/**](https://k6lab.duckdns.org/)  
+> Use the product online to configure tests, manage tokens, and view live telemetry cockpits.
 
 <p align="center">
   <a href="#-features">Features</a> •
@@ -24,7 +28,7 @@
 
 ## 🌐 Overview
 
-`k6lab-agent` is the official companion CLI for **K6 Lab**, the modern developer platform for API load and stress testing. It connects your local machine with the K6 Lab dashboard to execute high-throughput load tests on local endpoints (`localhost`) or private networks with zero configuration hassle.
+`k6lab-agent` is the official companion CLI for **K6 Lab** ([https://k6lab.duckdns.org](https://k6lab.duckdns.org/)), the modern developer platform for API load and stress testing. It connects your local machine with the K6 Lab dashboard to execute high-throughput load tests on local endpoints (`localhost`) or private networks with zero configuration hassle.
 
 ---
 
@@ -135,7 +139,7 @@ k6lab-agent --version
 ---
 
 ### Step 2: Get Your Agent Token
-1. Open your **K6 Lab Dashboard**.
+1. Open your **K6 Lab Web Dashboard** at [**https://k6lab.duckdns.org**](https://k6lab.duckdns.org/).
 2. Navigate to **Agent Settings** / **Connect Local Agent**.
 3. Copy your unique **Agent Token**.
 
@@ -166,20 +170,21 @@ k6lab-agent start
 You will see the active cockpit banner:
 ```txt
 ┌────────────────────────────────────────────────────────────┐
-│  ⚡ K6 LAB AGENT v1.0.6                        🟢 ONLINE    │
+│  ⚡ K6 LAB AGENT v1.0.8                        🟢 ONLINE    │
 └────────────────────────────────────────────────────────────┘
 ┌──────────────────────────────────────────────────────────────┐
 │  📡 READY & WAITING FOR DASHBOARD JOBS                       │
 ├──────────────────────────────────────────────────────────────┤
 │  Agent Name   : My Local Runner                              │
-│  API Server   : http://localhost:8000                        │
+│  Dashboard    : https://k6lab.duckdns.org                    │
+│  API Server   : https://k6lab.duckdns.org                    │
 │  Load Engine  : k6 v0.48.0 (native)                          │
 │  Status       : LISTENING (POLLING 3s)                       │
 │  Shortcut     : Press Ctrl+C to stop agent                   │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-Now, whenever you trigger a test run from your K6 Lab Web Dashboard, your local agent will automatically pick up the job, run the test locally, and stream telemetry back live! 🎉
+Now, whenever you trigger a test run from your K6 Lab Web Dashboard ([https://k6lab.duckdns.org](https://k6lab.duckdns.org/)), your local agent will automatically pick up the job, run the test locally, and stream telemetry back live! 🎉
 
 ---
 
@@ -189,7 +194,7 @@ Now, whenever you trigger a test run from your K6 Lab Web Dashboard, your local 
 | :--- | :--- | :--- |
 | `k6lab-agent login <token>` | `[--url, -u <apiUrl>]` | Authenticate and save agent credentials. |
 | `k6lab-agent start` | — | Start the worker daemon and listen for queued test runs. |
-| `k6lab-agent status` | — | Display current connection, agent identity, and server info. |
+| `k6lab-agent status` | — | Display current connection, agent identity, dashboard link, and server info. |
 | `k6lab-agent logout` | — | Disconnect agent and clear local stored credentials. |
 | `k6lab-agent --version` | — | Print installed `k6lab-agent` version. |
 | `k6lab-agent --help` | — | Show help and usage instructions. |
@@ -202,7 +207,7 @@ You can optionally override configuration using environment variables:
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
-| `K6LAB_API_URL` | `http://localhost:8000` | Fallback backend API URL if not specified during `login`. |
+| `K6LAB_API_URL` | `https://k6lab.duckdns.org` | Fallback backend API URL if not specified during `login`. |
 
 ---
 

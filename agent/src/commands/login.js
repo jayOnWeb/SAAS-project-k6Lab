@@ -37,6 +37,7 @@ export async function login(token, options = {}) {
       [
         { label: "Agent Name", value: res.data.agent.name, color: colors.brightCyan },
         { label: "Agent ID", value: res.data.agent.id, color: colors.gray },
+        { label: "Dashboard", value: "https://k6lab.duckdns.org", color: colors.brightCyan },
         { label: "API Server", value: apiUrl, color: colors.brightWhite },
         "---",
         { label: "Next Step", value: "Run 'k6lab-agent start' to launch local runner", color: colors.brightYellow }
@@ -48,6 +49,7 @@ export async function login(token, options = {}) {
     console.log("");
     logError("Agent login failed.");
     logError("Reason: Invalid agent token or backend server is unreachable.");
+    console.log(`${colors.gray}Tip: Generate an agent token from your dashboard at ${colors.brightCyan}https://k6lab.duckdns.org${colors.reset}`);
     if (err.response?.data?.error) {
       console.log(`${colors.gray}Details: ${err.response.data.error}${colors.reset}`);
     } else if (err.code === "ECONNREFUSED" || err.code === "ENOTFOUND") {

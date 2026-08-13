@@ -68,6 +68,7 @@ export async function start() {
       `${symbols.network} READY & WAITING FOR DASHBOARD JOBS`,
       [
         { label: "Agent Name", value: config.agentName, color: colors.brightCyan },
+        { label: "Dashboard", value: "https://k6lab.duckdns.org", color: colors.brightCyan },
         { label: "API Server", value: config.apiUrl, color: colors.brightWhite },
         { label: "Load Engine", value: k6Version, color: colors.brightGreen },
         { label: "Status", value: "LISTENING (POLLING 3s)", color: colors.green },

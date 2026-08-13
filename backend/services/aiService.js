@@ -2,12 +2,12 @@ const axios = require("axios");
 
 // Fallback pool of known top free OpenRouter models
 const STATIC_FREE_MODELS = [
-  "openrouter/free",
+  "liquid/lfm-2.5-2.6b:free",
   "google/gemma-4-26b-a4b-it:free",
-  "nvidia/nemotron-nano-9b-v2:free",
-  "openai/gpt-oss-20b:free",
-  "nvidia/nemotron-3-nano-30b-a3b:free",
-  "inclusionai/ling-3.0-flash:free"
+  "google/gemma-4-31b-it:free",
+  "nvidia/nemotron-3.5-lightning:free",
+  "poolside/laguna-s-2.1:free",
+  "openrouter/free"
 ];
 
 /**
@@ -52,7 +52,7 @@ const callOpenRouter = async (messages, temperature = 0.4) => {
           headers: {
             Authorization: `Bearer ${apiKey.trim()}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost:8000",
+            "HTTP-Referer": "https://k6lab.duckdns.org",
             "X-Title": "K6 Lab Performance Studio",
           },
           timeout: 25000,
@@ -88,7 +88,7 @@ const callOpenRouter = async (messages, temperature = 0.4) => {
           headers: {
             Authorization: `Bearer ${apiKey.trim()}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost:8000",
+            "HTTP-Referer": "https://k6lab.duckdns.org",
             "X-Title": "K6 Lab Performance Studio",
           },
           timeout: 25000,

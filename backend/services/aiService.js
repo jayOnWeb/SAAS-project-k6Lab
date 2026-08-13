@@ -1,12 +1,14 @@
 const axios = require("axios");
 
-// Fallback pool of known top free OpenRouter models (Ordered by fastest response)
+// Fallback pool of known top free OpenRouter models (Ordered by speed & reliability)
 const STATIC_FREE_MODELS = [
-  "google/gemma-4-26b-a4b-it:free",
-  "google/gemma-4-31b-it:free",
-  "nvidia/nemotron-3.5-lightning:free",
-  "liquid/lfm-2.5-2.6b:free",
-  "poolside/laguna-s-2.1:free"
+  "google/gemini-2.0-flash-exp:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "qwen/qwen-2.5-coder-32b-instruct:free",
+  "meta-llama/llama-3.1-8b-instruct:free",
+  "mistralai/mistral-7b-instruct:free",
+  "deepseek/deepseek-r1:free",
+  "deepseek/deepseek-chat:free",
 ];
 
 /**
@@ -14,10 +16,10 @@ const STATIC_FREE_MODELS = [
  */
 const fetchDynamicFreeModels = async () => {
   try {
-    const response = await axios.get("https://openrouter.ai/api/v1/models", { timeout: 5000 });
+    const response = await axios.get("https://openrouter.ai/api/v1/models", { timeout: 3000 });
     const models = response.data?.data || [];
     const freeIds = models
-      .filter((m) => m.id && (m.id.endsWith(":free") || m.pricing?.prompt === "0"))
+      .filter((m) => m.id && (m.id.endsWith(":free") || m.pricing?.prompt === "0" || m.pricing?.prompt === 0))
       .map((m) => m.id);
     return freeIds;
   } catch (err) {
@@ -28,7 +30,7 @@ const fetchDynamicFreeModels = async () => {
 /**
  * Helper function to call OpenRouter API with static + dynamic model fallbacks
  */
-const callOpenRouter = async (messages, temperature = 0.4) => {
+const callOpenRouter = async (messages, temperature = 0.3, maxTokens = 1500) => {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new Error("OpenRouter API Key not configured in server environment (.env).");
@@ -36,7 +38,7 @@ const callOpenRouter = async (messages, temperature = 0.4) => {
 
   let lastError = null;
 
-  // 1. Try static list first (fast timeout 10s per model)
+  // 1. Try static list first (fast timeout 5s per model for ultra-fast failover)
   for (const model of STATIC_FREE_MODELS) {
     try {
       const response = await axios.post(
@@ -45,6 +47,7 @@ const callOpenRouter = async (messages, temperature = 0.4) => {
           model: model,
           messages: messages,
           temperature: temperature,
+          max_tokens: maxTokens,
         },
         {
           headers: {
@@ -53,7 +56,7 @@ const callOpenRouter = async (messages, temperature = 0.4) => {
             "HTTP-Referer": "https://k6lab.duckdns.org",
             "X-Title": "K6 Lab Performance Studio",
           },
-          timeout: 10000,
+          timeout: 5000,
         }
       );
 
@@ -69,7 +72,7 @@ const callOpenRouter = async (messages, temperature = 0.4) => {
   // 2. If static list failed, dynamically query OpenRouter API for active free models
   const dynamicModels = await fetchDynamicFreeModels();
 
-  for (const model of dynamicModels.slice(0, 5)) {
+  for (const model of dynamicModels.slice(0, 3)) {
     if (STATIC_FREE_MODELS.includes(model)) continue;
 
     try {
@@ -79,6 +82,7 @@ const callOpenRouter = async (messages, temperature = 0.4) => {
           model: model,
           messages: messages,
           temperature: temperature,
+          max_tokens: maxTokens,
         },
         {
           headers: {
@@ -87,7 +91,7 @@ const callOpenRouter = async (messages, temperature = 0.4) => {
             "HTTP-Referer": "https://k6lab.duckdns.org",
             "X-Title": "K6 Lab Performance Studio",
           },
-          timeout: 8000,
+          timeout: 5000,
         }
       );
 

@@ -328,16 +328,23 @@ const getTestResults = async (req, res) => {
 // 🔹 Get a single test job run details
 const getSingleTest = async (req, res) => {
   try {
-    const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    const targetId = req.params.jobId || req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(targetId)) {
       return res.status(400).json({ success: false, error: "Invalid test job ID." });
     }
 
-    const job = await TestJob.findById(id);
-    if (!job || job.userId.toString() !== req.user._id.toString()) {
+    const job = await TestJob.findById(targetId);
+    if (!job) {
       return res.status(404).json({
         success: false,
         error: "Test job not found.",
+      });
+    }
+
+    if (job.userId && req.user?._id && job.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: "Unauthorized access to this test job.",
       });
     }
 
@@ -372,6 +379,7 @@ const getSingleTest = async (req, res) => {
       dataSent: job.result?.dataSent || 0,
       healthStatus: job.status === "completed" ? (job.result?.healthStatus || "Healthy 🟢") : job.status.toUpperCase(),
       createdAt: job.createdAt,
+      aiSuggestions: job.aiSuggestions || null,
       // connection breakdown breakdown fields
       waitingTime: job.result?.avgResponseTime ? (job.result.avgResponseTime * 0.8) : 0,
       sendingTime: job.result?.avgResponseTime ? (job.result.avgResponseTime * 0.05) : 0,
@@ -404,8 +412,12 @@ const cancelTest = async (req, res) => {
     }
 
     const job = await TestJob.findById(targetId);
-    if (!job || job.userId.toString() !== req.user._id.toString()) {
+    if (!job) {
       return res.status(404).json({ success: false, error: "Test job not found." });
+    }
+
+    if (job.userId && req.user?._id && job.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, error: "Unauthorized access to this test job." });
     }
 
     if (job.status === "queued") {
@@ -438,10 +450,17 @@ const deleteTest = async (req, res) => {
     }
 
     const job = await TestJob.findById(id);
-    if (!job || job.userId.toString() !== req.user._id.toString()) {
+    if (!job) {
       return res.status(404).json({
         success: false,
         error: "Test job not found.",
+      });
+    }
+
+    if (job.userId && req.user?._id && job.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: "Unauthorized access to this test job.",
       });
     }
 
@@ -468,8 +487,12 @@ const getAISuggestions = async (req, res) => {
     }
 
     const job = await TestJob.findById(targetId);
-    if (!job || job.userId.toString() !== req.user._id.toString()) {
+    if (!job) {
       return res.status(404).json({ success: false, error: "Test job not found." });
+    }
+
+    if (job.userId && req.user?._id && job.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, error: "Unauthorized access to this test job." });
     }
 
     // Return cached suggestions if already generated, unless force bypass is requested
@@ -505,10 +528,10 @@ const getAISuggestions = async (req, res) => {
 // 🔹 Interactive AI Chat regarding specific test job telemetry
 const askAIChat = async (req, res) => {
   try {
-    const { id } = req.params;
+    const targetId = req.params.jobId || req.params.id;
     const { question, chatHistory } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(targetId)) {
       return res.status(400).json({ success: false, error: "Invalid test job ID." });
     }
 
@@ -516,9 +539,13 @@ const askAIChat = async (req, res) => {
       return res.status(400).json({ success: false, error: "Question string is required." });
     }
 
-    const job = await TestJob.findById(id);
-    if (!job || job.userId.toString() !== req.user._id.toString()) {
+    const job = await TestJob.findById(targetId);
+    if (!job) {
       return res.status(404).json({ success: false, error: "Test job not found." });
+    }
+
+    if (job.userId && req.user?._id && job.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, error: "Unauthorized access to this test job." });
     }
 
     const cleanQuestion = String(question).trim().slice(0, 1000);

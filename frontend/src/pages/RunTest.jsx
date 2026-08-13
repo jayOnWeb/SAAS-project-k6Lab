@@ -172,7 +172,8 @@ export default function RunTest() {
 
   const handleSendChat = async (promptText) => {
     const q = promptText || chatInput;
-    if (!q || !q.trim() || chatLoading || !jobId) return;
+    const targetId = jobId || job?._id;
+    if (!q || !q.trim() || chatLoading || !targetId) return;
 
     const userMsg = { role: "user", content: q.trim() };
     const updatedHistory = [...chatMessages, userMsg];
@@ -181,7 +182,7 @@ export default function RunTest() {
     setChatLoading(true);
 
     try {
-      const res = await askAIChat(jobId, q.trim(), chatMessages);
+      const res = await askAIChat(targetId, q.trim(), chatMessages);
       if (res.success && res.answer) {
         setChatMessages([...updatedHistory, { role: "assistant", content: res.answer }]);
       } else {
@@ -256,17 +257,22 @@ export default function RunTest() {
   };
 
   const fetchAISuggestions = async (id, force = false) => {
+    const targetId = id || jobId || job?._id;
+    if (!targetId) {
+      setAiError("No test job selected to analyze.");
+      return;
+    }
     setAiLoading(true);
     setAiError("");
     try {
-      const res = await getAISuggestions(id, force);
+      const res = await getAISuggestions(targetId, force);
       if (res.success) {
         setAiSuggestions(res.suggestions);
       } else {
         setAiError(res.error || "Failed to load AI suggestions.");
       }
     } catch (err) {
-      setAiError(err.response?.data?.error || "AI engine currently offline.");
+      setAiError(err.response?.data?.error || "AI engine currently offline. Please retry in a moment.");
     } finally {
       setAiLoading(false);
     }

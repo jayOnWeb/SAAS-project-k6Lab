@@ -1,0 +1,21 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+Allow: /why
+Allow: /features
+Allow: /how-it-works
+Allow: /platform
+Allow: /docs
+Allow: /privacy
+Allow: /terms
+Allow: /login
+Allow: /signup
+
+# Exclude protected dashboard & internal routes
+Disallow: /dashboard/
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /404
+Disallow: /error
+
+Sitemap: https://k6lab.com/sitemap.xml

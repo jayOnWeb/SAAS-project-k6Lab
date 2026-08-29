@@ -25,6 +25,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { Badge } from '../components/ui/badge';
 import { BorderBeam } from '../components/ui/border-beam';
+import SEO from '../components/SEO';
 
 const SCENARIOS = [
   { id: 'baseline', label: '500 VUs Baseline', vus: 500, baseP95: 18, baseRPS: 920, color: '#10b981' },
@@ -133,6 +134,11 @@ export default function PlatformPage() {
 
   return (
     <div className="min-h-screen bg-[#030305] text-white flex flex-col selection:bg-red-500/40 selection:text-white relative">
+      <SEO 
+        title="Interactive Load Simulator Platform"
+        description="Experience K6 LAB's interactive load simulator. Adjust VUs, simulate traffic spikes, monitor P95 response times, and analyze performance bottlenecks live."
+        keywords="k6 lab platform, interactive load simulator, virtual users simulator, response time telemetry, p95 latency testing"
+      />
       <div className="red-aurora" />
       <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
 

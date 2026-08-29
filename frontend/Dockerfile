@@ -17,6 +17,7 @@ COPY . .
 # Optional Build Argument for API URL (default can be injected via build arg)
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
+ENV NODE_OPTIONS="--max-old-space-size=1536"
 
 # Build optimized production bundle
 RUN npm run build

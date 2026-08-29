@@ -17,6 +17,7 @@ import {
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import IllustrationCard from '../components/IllustrationCard';
+import SEO from '../components/SEO';
 
 export default function ErrorPage({ 
   error = null, 
@@ -57,6 +58,11 @@ export default function ErrorPage({
 
   return (
     <div className="min-h-screen bg-[#030305] text-white flex flex-col selection:bg-red-500 selection:text-white relative overflow-hidden">
+      <SEO 
+        title="Application Exception — K6 LAB Error"
+        description="An unexpected error occurred."
+        noindex={true}
+      />
       {/* Top Navbar */}
       <Navbar />
 

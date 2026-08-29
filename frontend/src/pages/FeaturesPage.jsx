@@ -3,9 +3,16 @@ import { Shield, Zap, Activity, Clock, Sparkles, ArrowRight, CheckCircle2 } from
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
+import SEO from '../components/SEO';
+
 export default function FeaturesPage() {
   return (
     <div className="min-h-screen bg-[#030305] text-white flex flex-col selection:bg-red-500/40 selection:text-white relative">
+      <SEO 
+        title="Product Features & Capabilities — Native k6 Execution"
+        description="Explore K6 LAB features: native k6 script engine, real-time response time telemetry, visual load builder, and AI bottleneck detection."
+        keywords="k6 lab features, k6 test runner, real-time load test analytics, visual k6 scenario builder, ai performance telemetry"
+      />
       <div className="red-aurora" />
       <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
 

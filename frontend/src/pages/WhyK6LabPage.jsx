@@ -94,9 +94,16 @@ const CHECKLIST_ITEMS = [
   { text: "Tested TTFB, DNS lookup, and TLS handshake under heavy network load", category: "Network" }
 ];
 
+import SEO from '../components/SEO';
+
 export default function WhyK6LabPage() {
   return (
     <div className="min-h-screen bg-[#030305] text-white flex flex-col selection:bg-red-500/40 selection:text-white relative">
+      <SEO 
+        title="Why K6 LAB — Local-First vs Cloud Load Testing"
+        description="Discover why developers choose K6 LAB over traditional cloud SaaS load testing. Zero cloud bills, complete data privacy, and zero latency."
+        keywords="why k6 lab, local load testing benefits, k6 vs cloud load testing, data privacy load test, zero cost performance testing"
+      />
       {/* Ambient Red Glow */}
       <div className="red-aurora" />
       <div className="absolute inset-0 bg-grid-pattern opacity-25 pointer-events-none" />

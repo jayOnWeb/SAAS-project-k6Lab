@@ -4,6 +4,8 @@ import { Scale, ShieldAlert, CheckCircle2, FileText, AlertTriangle, Terminal, Cp
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
+import SEO from '../components/SEO';
+
 export default function TermsPage() {
   const lastUpdated = "August 2, 2026";
 
@@ -20,6 +22,11 @@ export default function TermsPage() {
 
   return (
     <div className="min-h-screen bg-[#030305] text-white flex flex-col selection:bg-red-500/40 selection:text-white relative">
+      <SEO 
+        title="Terms of Service & Usage Policy"
+        description="Review K6 LAB Terms of Service, acceptable load testing use guidelines, and platform service terms."
+        keywords="k6 lab terms of service, acceptable use policy, load testing terms"
+      />
       {/* Red Aurora Background Spotlight */}
       <div className="red-aurora" />
       <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />

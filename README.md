@@ -1,10 +1,14 @@
 # ⚡ K6 Lab — Local-First Load Testing Platform v2.4
 
+[![Web App](https://img.shields.io/badge/Web_App-k6lab.duckdns.org-rose?style=flat-square&color=F43F5E)](https://k6lab.duckdns.org/)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
 [![Vite](https://img.shields.io/badge/vite-v8.0-646CFF.svg)](https://vitejs.dev/)
 [![React](https://img.shields.io/badge/react-v19.0-61DAFB.svg)](https://react.dev/)
 [![k6 Engine](https://img.shields.io/badge/engine-Grafana_k6-7D4698.svg)](https://k6.io/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+> 🌐 **Live Web Application**: [**https://k6lab.duckdns.org/**](https://k6lab.duckdns.org/)  
+> Access the live cockpit, create test suites, execute native k6 tests locally, and view instant AI root-cause diagnostics.
 
 > **K6 Lab** is a high-performance, local-first API load-testing platform and real-time telemetry cockpit. Designed for developers and platform engineers, K6 Lab combines local Go `k6` engine execution with centralized control, live latency distribution telemetry, and instant AI root-cause failure diagnosis.
 

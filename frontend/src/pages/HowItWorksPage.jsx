@@ -42,9 +42,16 @@ const STEPS = [
   },
 ];
 
+import SEO from '../components/SEO';
+
 export default function HowItWorksPage() {
   return (
     <div className="min-h-screen bg-[#030305] text-white flex flex-col selection:bg-red-500/40 selection:text-white relative">
+      <SEO 
+        title="How It Works — Local Agent & Native k6 Workflow"
+        description="Learn how K6 LAB connects your local CLI agent with native k6 binaries to run load tests on your API with zero latency."
+        keywords="how k6 lab works, k6 local agent, performance testing workflow, API load test setup, k6 execution architecture"
+      />
       <div className="red-aurora" />
       <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
 

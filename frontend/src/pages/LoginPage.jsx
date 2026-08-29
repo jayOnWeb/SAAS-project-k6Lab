@@ -6,6 +6,8 @@ import AuthLayout from "../layouts/AuthLayout";
 
 import ElectricBorder from "../components/ElectricBorder";
 
+import SEO from "../components/SEO";
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,12 +28,16 @@ export default function LoginPage() {
     if (result.success) {
       navigate("/dashboard");
     } else {
-      setError(result.error || "Invalid credentials. Please try again.");
+      setError(result.message || "Failed to log in. Please check credentials.");
     }
   };
 
   return (
     <AuthLayout>
+      <SEO 
+        title="Sign In — Access Your Load Testing Workstation"
+        description="Sign in to your K6 LAB account to connect your local agents, manage projects, and view live telemetry."
+      />
       <ElectricBorder
         color="#ef4444"
         speed={1}

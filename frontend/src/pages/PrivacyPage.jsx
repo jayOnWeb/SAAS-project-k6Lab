@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Shield, Lock, EyeOff, Server, Database, UserCheck, FileText, CheckCircle2, ArrowRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import SEO from '../components/SEO';
 
 export default function PrivacyPage() {
   const lastUpdated = "August 2, 2026";
@@ -19,6 +20,11 @@ export default function PrivacyPage() {
 
   return (
     <div className="min-h-screen bg-[#030305] text-white flex flex-col selection:bg-red-500/40 selection:text-white relative">
+      <SEO 
+        title="Privacy Policy — Data Isolation & Security"
+        description="K6 LAB Privacy Policy details our local-first security philosophy, zero data leakage model, and how your testing telemetry stays strictly private."
+        keywords="k6 lab privacy policy, data isolation, local-first security model, privacy load testing"
+      />
       {/* Red Aurora Background Spotlight */}
       <div className="red-aurora" />
       <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />

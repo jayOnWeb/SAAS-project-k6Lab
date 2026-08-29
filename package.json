@@ -2,6 +2,7 @@
   "name": "k6lab-workspace",
   "private": true,
   "version": "1.0.0",
+  "homepage": "https://k6lab.duckdns.org",
   "scripts": {
     "dev": "npx -y concurrently \"npm run dev --prefix frontend\" \"node backend/app.js\"",
     "backend": "node backend/app.js",

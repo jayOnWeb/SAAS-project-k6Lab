@@ -27,9 +27,30 @@ import CurvedLoop from '../components/CurvedLoop';
 import FuzzyText from '../components/ui/FuzzyText';
 import GlitchText from '../components/ui/GlitchText';
 
+import SEO from '../components/SEO';
+
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col selection:bg-red-500/40 selection:text-white relative overflow-hidden">
+      <SEO 
+        title="Local-First Performance Testing Platform"
+        description="K6 LAB delivers native k6 script execution, real-time metrics, visual load test builder, and AI performance analysis directly on your local workstation."
+        keywords="k6 lab, k6 gui, load testing tool, performance testing platform, local-first testing, api load test, real-time telemetry"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "K6 LAB",
+          "operatingSystem": "macOS, Linux, Windows",
+          "applicationCategory": "DeveloperApplication",
+          "description": "Local-first performance testing platform with native k6 execution, real-time telemetry, and AI-powered performance insights.",
+          "url": "https://k6lab.com",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          }
+        }}
+      />
       {/* LaserFlow Background Effect */}
       <div className="absolute top-10 sm:top-16 md:top-20 left-1/2 -translate-x-1/2 w-full max-w-[1200px] h-[950px] pointer-events-none z-0 overflow-hidden opacity-70 flex items-center justify-center">
         <div style={{ width: '1080px', height: '1080px', position: 'relative' }}>

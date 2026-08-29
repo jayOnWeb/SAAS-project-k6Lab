@@ -26,6 +26,8 @@ import {
   Clock
 } from "lucide-react";
 
+import SEO from "../components/SEO";
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -126,6 +128,11 @@ export default function Dashboard() {
 
   return (
     <div className="bg-zinc-950 text-white min-h-screen font-sans">
+      <SEO 
+        title="Dashboard — Workstation"
+        description="Private load testing workspace and real-time telemetry orchestrator."
+        noindex={true}
+      />
       <div className="max-w-7xl mx-auto px-5 sm:px-8 py-8 space-y-9">
         
         {/* Workspace Command Header */}

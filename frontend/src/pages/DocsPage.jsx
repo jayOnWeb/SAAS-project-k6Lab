@@ -4,6 +4,8 @@ import { Copy, Check, ArrowRight, Terminal } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
+import SEO from '../components/SEO';
+
 export default function DocsPage() {
   const [copiedStep, setCopiedStep] = useState(null);
 
@@ -15,6 +17,19 @@ export default function DocsPage() {
 
   return (
     <div className="min-h-screen bg-[#030305] text-white flex flex-col selection:bg-red-500/40 selection:text-white relative">
+      <SEO 
+        title="Documentation & CLI Setup Guide"
+        description="Complete documentation for K6 LAB. Learn how to install the k6lab-agent CLI, connect local environments, and run automated performance tests."
+        keywords="k6 lab docs, k6 agent cli setup, performance testing documentation, local load test quickstart, k6 installation"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "TechArticle",
+          "headline": "K6 LAB Documentation & CLI Installation Guide",
+          "description": "Step-by-step guide to installing the k6lab-agent CLI, connecting your local workstation, and running native k6 performance tests.",
+          "articleBody": "Installation steps for k6lab-agent CLI: 1. npm install -g k6lab-agent. 2. k6lab-agent login. 3. k6lab-agent start.",
+          "url": "https://k6lab.com/docs"
+        }}
+      />
       <div className="red-aurora" />
       <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
 

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import SEO from '../components/SEO';
 import IllustrationCard from '../components/IllustrationCard';
 
 const QUICK_LINKS = [
@@ -87,6 +88,11 @@ export default function NotFoundPage() {
 
   return (
     <div className="min-h-screen bg-[#030305] text-white flex flex-col selection:bg-red-500 selection:text-white relative overflow-hidden">
+      <SEO 
+        title="404 — Page Not Found"
+        description="The requested route or resource could not be found."
+        noindex={true}
+      />
       {/* Top Main Navbar */}
       <Navbar />
 

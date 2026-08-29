@@ -6,6 +6,8 @@ import AuthLayout from "../layouts/AuthLayout";
 
 import ElectricBorder from "../components/ElectricBorder";
 
+import SEO from "../components/SEO";
+
 export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,12 +35,16 @@ export default function SignupPage() {
     if (result.success) {
       navigate("/dashboard");
     } else {
-      setError(result.error || "Failed to create account. Please try again.");
+      setError(result.error || "Failed to create account.");
     }
   };
 
   return (
     <AuthLayout>
+      <SEO 
+        title="Create Account — Start Local Load Testing"
+        description="Create your free K6 LAB account and start executing local performance tests with real-time telemetry."
+      />
       <ElectricBorder
         color="#ef4444"
         speed={1}
